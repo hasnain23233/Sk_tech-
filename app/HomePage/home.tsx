@@ -6,16 +6,17 @@ import { Bricolage_Grotesque, Manrope } from "next/font/google"
 import {
   FaCode, FaSearch, FaHashtag, FaChartLine, FaPaintBrush,
   FaMobileAlt, FaStore, FaPenNib, FaArrowRight, FaArrowLeft,
-  FaQuoteLeft, FaChevronDown, FaStar,
+  FaQuoteLeft, FaChevronDown, FaStar, FaPhoneAlt, FaEnvelope,
+  FaMapMarkerAlt, FaUsers, FaAngleDown,
 } from "react-icons/fa"
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", weight: ["500", "600", "700", "800"] })
 const body = Manrope({ subsets: ["latin"], variable: "--font-body", weight: ["400", "500", "600", "700", "800"] })
 
 /* ─────────────────────────────────────────
-   Brand tokens — unchanged palette
-   purple #8B2FC9   pink #FF2D95   ink #1B1023
-   paper  #FBF7FC    muted #6b6560  line rgba(139,47,201,.14)
+   Brand tokens — original palette
+   purple #8B2FC9   pink #FF2D95   ink #1B1023   paper #FBF7FC
+   muted #6b6560    line rgba(139,47,201,.14)
 ───────────────────────────────────────── */
 const GRAD = "linear-gradient(135deg,#8B2FC9,#FF2D95)"
 const DISPLAY = "var(--font-display)"
@@ -134,26 +135,31 @@ const stats = [
 const coreServices = [
   {
     id: 1, title: "Web Development", icon: <FaCode size={18} />, href: "/services/web-development",
+    image: "https://images.unsplash.com/photo-1547658719-da2b51169166?auto=format&fit=crop&w=700&q=80",
     detail: "We build on frameworks that scale with your traffic, not against it. Every build ships with clean semantic markup, real performance budgets, and a CMS your team can actually use.",
     bullets: ["Core Web Vitals built in from day one", "Headless or traditional CMS, your call", "Handover documentation, not a black box"],
   },
   {
     id: 2, title: "Shopify Development", icon: <FaStore size={18} />, href: "/services/shopify-development",
+    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=700&q=80",
     detail: "Theme customisation, app integrations, and checkout flows engineered around cart-abandonment data — not stock templates.",
     bullets: ["Custom theme builds, not stock templates", "Subscription, wholesale & multi-currency setups", "Speed-audited before launch, every time"],
   },
   {
     id: 3, title: "SEO & Content Marketing", icon: <FaSearch size={18} />, href: "/services/seo-content-marketing",
+    image: "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?auto=format&fit=crop&w=700&q=80",
     detail: "No keyword-stuffed filler. We map content to the questions your buyers actually type into Google, then build the technical SEO underneath it.",
     bullets: ["Technical audit before any content plan", "Buyer-intent content calendars", "Monthly ranking reports in plain language"],
   },
   {
     id: 4, title: "Social Media Marketing", icon: <FaHashtag size={18} />, href: "/services/social-media-marketing",
+    image: "https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?auto=format&fit=crop&w=700&q=80",
     detail: "We pick platforms based on where your buyers already spend time. Content calendars and creative that looks like your brand made it — because we made it as your brand.",
     bullets: ["Platform strategy before content, always", "Native creative per platform", "Engagement handled inside business hours"],
   },
   {
     id: 5, title: "Pay-Per-Click Advertising", icon: <FaChartLine size={18} />, href: "/services/ppc-advertising",
+    image: "https://images.unsplash.com/photo-1533750349088-cd871a92f312?auto=format&fit=crop&w=700&q=80",
     detail: "Campaigns structured around your actual margin, not a vanity click-through rate. We report cost per qualified lead and kill underperforming ad sets fast.",
     bullets: ["Landing pages built to match ad intent", "Weekly bid & budget review", "Kill/scale decisions inside 14 days"],
   },
@@ -173,6 +179,12 @@ const checks = [
   { title: "The same playbook since 2011", desc: "Fifteen years of the same accountable process, refined, not reinvented every quarter." },
 ]
 
+const teamStrip = [
+  { src: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=500&q=80", alt: "Developers pairing on a project at SK Techs" },
+  { src: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=500&q=80", alt: "Designer reviewing layouts on a large monitor" },
+  { src: "https://images.unsplash.com/photo-1600880292089-90a7e086ee0c?auto=format&fit=crop&w=500&q=80", alt: "Strategy team discussing a campaign plan" },
+]
+
 const industries = ["E-commerce", "Healthcare", "Real Estate", "Hospitality", "Education", "Professional Services", "Startups", "Retail"]
 
 const process = [
@@ -185,15 +197,15 @@ const process = [
 const rotatingWords = ["designed", "built", "launched", "measured"]
 
 const caseStudies = [
-  { client: "Boutique fashion retailer", region: "UK", result: "3.2", suffix: "x", metric: "organic traffic in 6 months", detail: "Rebuilt their Shopify store and rebuilt SEO from the ground up around actual buyer intent, not keyword volume alone." },
-  { client: "Healthcare clinic network", region: "Pakistan", result: "4", suffix: "x", metric: "qualified leads from paid search", detail: "Restructured Google Ads campaigns and landing pages around each clinic's specialty instead of one generic funnel." },
-  { client: "B2B SaaS startup", region: "UK", result: "58", suffix: "%", metric: "lower cost per lead", detail: "Replaced a scattershot social strategy with a focused content and PPC funnel built around one buyer persona." },
+  { client: "Boutique fashion retailer", region: "UK", result: "3.2", suffix: "x", metric: "organic traffic in 6 months", detail: "Rebuilt their Shopify store and rebuilt SEO from the ground up around actual buyer intent, not keyword volume alone.", image: "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=500&q=80" },
+  { client: "Healthcare clinic network", region: "Pakistan", result: "4", suffix: "x", metric: "qualified leads from paid search", detail: "Restructured Google Ads campaigns and landing pages around each clinic's specialty instead of one generic funnel.", image: "https://images.unsplash.com/photo-1587351021355-a479a299d2f9?auto=format&fit=crop&w=500&q=80" },
+  { client: "B2B SaaS startup", region: "UK", result: "58", suffix: "%", metric: "lower cost per lead", detail: "Replaced a scattershot social strategy with a focused content and PPC funnel built around one buyer persona.", image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=500&q=80" },
 ]
 
 const testimonials = [
-  { quote: "They rebuilt our site in six weeks and our bounce rate dropped almost immediately. First agency that actually explained what they were doing.", author: "Operations Lead", role: "Retail client" },
-  { quote: "We'd worked with three agencies before SK Techs. This is the first one where design and marketing weren't fighting each other.", author: "Founder", role: "Hospitality client" },
-  { quote: "Monthly reports are in plain language. I can tell my board what happened without translating anything.", author: "Marketing Manager", role: "Healthcare client" },
+  { quote: "They rebuilt our site in six weeks and our bounce rate dropped almost immediately. First agency that actually explained what they were doing.", author: "Operations Lead", role: "Retail client", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" },
+  { quote: "We'd worked with three agencies before SK Techs. This is the first one where design and marketing weren't fighting each other.", author: "Founder", role: "Hospitality client", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80" },
+  { quote: "Monthly reports are in plain language. I can tell my board what happened without translating anything.", author: "Marketing Manager", role: "Healthcare client", avatar: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?auto=format&fit=crop&w=120&q=80" },
 ]
 
 const faqs = [
@@ -212,7 +224,7 @@ const estimatorIndustries = [
 ]
 
 /* ─────────────────────────────────────────
-   Section marker — small, sentence case, not a tracked-caps eyebrow
+   Section marker
 ───────────────────────────────────────── */
 function SectionMark({ children }: { children: ReactNode }) {
   return (
@@ -224,7 +236,7 @@ function SectionMark({ children }: { children: ReactNode }) {
 }
 
 /* ─────────────────────────────────────────
-   Rotating word — cycles through the four things we actually do
+   Rotating word
 ───────────────────────────────────────── */
 const wordFadeCSS = `@keyframes wordFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`
 
@@ -249,7 +261,7 @@ function RotatingWord() {
 }
 
 /* ─────────────────────────────────────────
-   Hero — cursor-reactive spotlight
+   Hero — cursor-reactive spotlight + image column + scroll cue
 ───────────────────────────────────────── */
 function Hero({ visible }: { visible: boolean }) {
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -276,40 +288,84 @@ function Hero({ visible }: { visible: boolean }) {
         }}
       />
 
-      <div className="relative z-10 w-11/12 max-w-6xl mx-auto">
-        <div
-          style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.6s ease, transform 0.6s ease" }}
-          className="inline-flex items-center gap-2 mb-7"
-        >
-          <span className="inline-flex items-center gap-2" style={{ color: "#8B2FC9", background: "rgba(139,47,201,0.08)", border: "1px solid rgba(139,47,201,0.25)", borderRadius: 999, padding: "8px 16px", fontFamily: DISPLAY, fontWeight: 600, fontSize: 13 }}>
-            <FaStar size={9} /> UK &amp; Pakistan&apos;s digital growth partner
-          </span>
+      <div className="relative z-10 w-11/12 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-14 items-center">
+        <div>
+          <div
+            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.6s ease, transform 0.6s ease" }}
+            className="inline-flex items-center gap-2 mb-7"
+          >
+            <span className="inline-flex items-center gap-2" style={{ color: "#8B2FC9", background: "rgba(139,47,201,0.08)", border: "1px solid rgba(139,47,201,0.25)", borderRadius: 999, padding: "8px 16px", fontFamily: DISPLAY, fontWeight: 600, fontSize: 13 }}>
+              <FaStar size={9} /> UK &amp; Pakistan&apos;s digital growth partner
+            </span>
+          </div>
+
+          <h1
+            style={{
+              opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(24px)",
+              transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", color: "#1B1023", fontFamily: DISPLAY,
+            }}
+            className="text-4xl sm:text-5xl md:text-[58px] font-bold leading-[1.06] tracking-tight mb-7"
+          >
+            Digital growth, <RotatingWord /> in the open.
+          </h1>
+
+          <p
+            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s", color: "#6b6560" }}
+            className="text-base md:text-lg leading-relaxed mb-10 max-w-xl"
+          >
+            SK Techs designs your website, runs the campaigns that bring people to it, and reports back in numbers you can actually use. Since 2011.
+          </p>
+
+          <div
+            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.7s ease 0.3s, transform 0.7s ease 0.3s" }}
+            className="flex flex-wrap gap-4"
+          >
+            <MagneticLink href="/contact" variant="solid">Start a project <FaArrowRight size={12} /></MagneticLink>
+            <MagneticLink href="/portfolio" variant="outline">See our work</MagneticLink>
+          </div>
         </div>
 
-        <h1
-          style={{
-            opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(24px)",
-            transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", color: "#1B1023", fontFamily: DISPLAY,
-          }}
-          className="text-4xl sm:text-5xl md:text-[62px] font-bold leading-[1.06] tracking-tight mb-7 max-w-3xl"
-        >
-          Digital growth, <RotatingWord /> in the open.
-        </h1>
-
-        <p
-          style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s", color: "#6b6560" }}
-          className="text-base md:text-lg leading-relaxed mb-10 max-w-xl"
-        >
-          SK Techs designs your website, runs the campaigns that bring people to it, and reports back in numbers you can actually use. Since 2011.
-        </p>
-
         <div
-          style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.7s ease 0.3s, transform 0.7s ease 0.3s" }}
-          className="flex flex-wrap gap-4"
+          className="relative hidden lg:block"
+          style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.97)", transition: "opacity 0.8s ease 0.15s, transform 0.8s ease 0.15s" }}
         >
-          <MagneticLink href="/contact" variant="solid">Start a project <FaArrowRight size={12} /></MagneticLink>
-          <MagneticLink href="/portfolio" variant="outline">See our work</MagneticLink>
+          <div className="group relative rounded-[28px] overflow-hidden" style={{ boxShadow: "0 30px 70px rgba(27,16,35,0.22)" }}>
+            <img
+              src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80"
+              alt="SK Techs team reviewing a campaign dashboard together"
+              className="w-full h-[460px] object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+              loading="lazy"
+            />
+            <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(27,16,35,0) 55%,rgba(27,16,35,0.35) 100%)" }} />
+          </div>
+
+          <div
+            className="absolute -bottom-8 -left-8 rounded-2xl px-6 py-5 flex items-center gap-4"
+            style={{ background: "rgba(255,255,255,0.9)", backdropFilter: "blur(10px)", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 18px 45px rgba(27,16,35,0.18)" }}
+          >
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: GRAD, color: "#fff" }}>
+              <FaChartLine size={16} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold leading-none" style={{ color: "#1B1023", fontFamily: DISPLAY }}>3.2x</p>
+              <p className="text-[13px] font-medium" style={{ color: "#6b6560" }}>Avg. client growth</p>
+            </div>
+          </div>
+
+          <div
+            className="absolute -top-6 -right-6 w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{ background: "#fff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 14px 34px rgba(27,16,35,0.16)" }}
+          >
+            <FaStar size={20} style={{ color: "#FF2D95" }} />
+          </div>
         </div>
+      </div>
+
+      <div
+        className="relative z-10 flex justify-center mt-16"
+        style={{ opacity: visible ? 0.6 : 0, transition: "opacity 1s ease 0.6s", animation: visible ? "bounceDown 2.2s ease-in-out infinite" : "none" }}
+      >
+        <FaAngleDown size={18} style={{ color: "#8B2FC9" }} />
       </div>
 
       <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] pointer-events-none">
@@ -322,7 +378,7 @@ function Hero({ visible }: { visible: boolean }) {
 }
 
 /* ─────────────────────────────────────────
-   Service Explorer — click-through tabs
+   Service Explorer — click-through tabs, now with photo context
 ───────────────────────────────────────── */
 function ServiceExplorer() {
   const [active, setActive] = useState(0)
@@ -343,23 +399,30 @@ function ServiceExplorer() {
         ))}
       </div>
 
-      <div className="p-8 md:p-10" style={{ background: "#ffffff" }}>
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: GRAD, color: "#fff" }}>
-          {s.icon}
+      <div style={{ background: "#ffffff" }}>
+        <div className="group relative h-40 md:h-48 overflow-hidden">
+          <img key={s.id} src={s.image} alt={`${s.title} illustrative work sample`} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110" loading="lazy" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(180deg,rgba(27,16,35,0.05) 0%,rgba(27,16,35,0.55) 100%)" }} />
+          <div className="absolute bottom-4 left-6 w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: GRAD, color: "#fff" }}>
+            {s.icon}
+          </div>
         </div>
-        <h3 className="text-2xl font-bold mb-3" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{s.title}</h3>
-        <p className="text-[15px] leading-relaxed mb-5 max-w-lg" style={{ color: "#6b6560" }}>{s.detail}</p>
-        <ul className="flex flex-col gap-2.5 mb-7">
-          {s.bullets.map((b) => (
-            <li key={b} className="flex items-start gap-3 text-sm font-medium" style={{ color: "#1B1023" }}>
-              <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: "#FF2D95" }} />
-              {b}
-            </li>
-          ))}
-        </ul>
-        <Link href={s.href} className="inline-flex items-center gap-2 text-sm font-bold" style={{ color: "#8B2FC9" }}>
-          More on {s.title}
-        </Link>
+
+        <div className="p-8 md:p-10">
+          <h3 className="text-2xl font-bold mb-3" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{s.title}</h3>
+          <p className="text-[15px] leading-relaxed mb-5 max-w-lg" style={{ color: "#6b6560" }}>{s.detail}</p>
+          <ul className="flex flex-col gap-2.5 mb-7">
+            {s.bullets.map((b) => (
+              <li key={b} className="flex items-start gap-3 text-sm font-medium" style={{ color: "#1B1023" }}>
+                <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: "#FF2D95" }} />
+                {b}
+              </li>
+            ))}
+          </ul>
+          <Link href={s.href} className="inline-flex items-center gap-2 text-sm font-bold transition-transform duration-200 hover:translate-x-1" style={{ color: "#8B2FC9" }}>
+            More on {s.title} <FaArrowRight size={11} />
+          </Link>
+        </div>
       </div>
     </div>
   )
@@ -388,6 +451,7 @@ function GrowthEstimator() {
   return (
     <div className="rounded-3xl p-8 md:p-12 relative overflow-hidden" style={{ background: "#1B1023" }}>
       <div className="absolute top-0 right-0 w-[420px] h-[420px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.35) 0%,transparent 65%)", transform: "translate(30%,-35%)" }} />
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(255,45,149,0.18) 0%,transparent 65%)", transform: "translate(-25%,35%)" }} />
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
           <p className="text-sm font-semibold mb-4" style={{ color: "#FF2D95", fontFamily: DISPLAY }}>Try it yourself</p>
@@ -452,7 +516,7 @@ function GrowthEstimator() {
 }
 
 /* ─────────────────────────────────────────
-   Case Study Switcher
+   Case Study Switcher — now with a client photo
 ───────────────────────────────────────── */
 function CaseStudySwitcher() {
   const [active, setActive] = useState(0)
@@ -477,8 +541,12 @@ function CaseStudySwitcher() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-8 md:gap-14 items-start p-8 md:p-10 rounded-3xl" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 20px 60px rgba(27,16,35,0.06)" }}>
-        <div className="md:min-w-[180px]">
+      <div className="grid grid-cols-1 md:grid-cols-[180px_auto_1fr] gap-8 md:gap-10 items-start p-8 md:p-10 rounded-3xl" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 20px 60px rgba(27,16,35,0.06)" }}>
+        <div className="group rounded-2xl overflow-hidden h-32 md:h-full" style={{ boxShadow: "0 10px 26px rgba(27,16,35,0.15)" }}>
+          <img src={c.image} alt={`${c.client} project work`} className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110" loading="lazy" />
+        </div>
+
+        <div className="md:min-w-[160px]">
           <p className="text-6xl font-bold tabular-nums leading-none" style={{ background: GRAD, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontFamily: DISPLAY }}>
             <CountUp value={`${c.result}${c.suffix}`} start={true} />
           </p>
@@ -496,7 +564,7 @@ function CaseStudySwitcher() {
 }
 
 /* ─────────────────────────────────────────
-   Testimonial carousel — keyboard + swipe
+   Testimonial carousel — keyboard + swipe, with avatars
 ───────────────────────────────────────── */
 function TestimonialCarousel() {
   const [index, setIndex] = useState(0)
@@ -524,18 +592,19 @@ function TestimonialCarousel() {
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-7" style={{ background: GRAD, color: "#fff" }}>
-        <FaQuoteLeft size={18} />
+      <div className="relative w-16 h-16 rounded-2xl mx-auto mb-7 overflow-hidden" style={{ boxShadow: "0 10px 26px rgba(27,16,35,0.18)", border: "2px solid #fff", outline: "1px solid rgba(139,47,201,0.2)" }}>
+        <img key={index} src={t.avatar} alt={`${t.author}, ${t.role}`} className="w-full h-full object-cover" loading="lazy" style={{ animation: "wordFade 0.4s ease" }} />
       </div>
       <div className="flex justify-center gap-0.5 mb-5">{[1, 2, 3, 4, 5].map((s) => <FaStar key={s} size={14} className="text-yellow-400" />)}</div>
       <p key={index} className="text-xl md:text-2xl font-medium leading-relaxed mb-8" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
+        <FaQuoteLeft size={14} style={{ color: "#8B2FC9", display: "inline", marginRight: 8, verticalAlign: "middle" }} />
         {t.quote}
       </p>
       <p className="text-sm font-bold" style={{ color: "#1B1023" }}>{t.author}</p>
       <p className="text-sm mb-9" style={{ color: "#c9a8dd" }}>{t.role}</p>
 
       <div className="flex items-center justify-center gap-4">
-        <button onClick={() => go(-1)} aria-label="Previous testimonial" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200" style={{ border: "1px solid rgba(139,47,201,0.25)", color: "#8B2FC9" }}>
+        <button onClick={() => go(-1)} aria-label="Previous testimonial" className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 hover:-translate-x-0.5" style={{ border: "1px solid rgba(139,47,201,0.25)", color: "#8B2FC9" }}>
           <FaArrowLeft size={12} />
         </button>
         <div className="flex gap-1.5 items-center">
@@ -549,7 +618,7 @@ function TestimonialCarousel() {
             />
           ))}
         </div>
-        <button onClick={() => go(1)} aria-label="Next testimonial" className="w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200" style={{ border: "1px solid rgba(139,47,201,0.25)", color: "#8B2FC9" }}>
+        <button onClick={() => go(1)} aria-label="Next testimonial" className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 hover:translate-x-0.5" style={{ border: "1px solid rgba(139,47,201,0.25)", color: "#8B2FC9" }}>
           <FaArrowRight size={12} />
         </button>
       </div>
@@ -583,6 +652,7 @@ function FAQItem({ item, isOpen, onToggle }: { item: { q: string; a: string }; i
 
 const marqueeCSS = `
 @keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes bounceDown{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
 ${wordFadeCSS}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
@@ -624,7 +694,7 @@ export default function HomePage() {
 
       {/* ABOUT */}
       <section className="py-24 md:py-28" style={{ background: "#ffffff" }}>
-        <div className="w-11/12 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <div className="w-11/12 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 mb-16">
           <Reveal>
             <SectionMark>About our company</SectionMark>
             <h2 className="text-3xl md:text-[42px] font-bold leading-[1.1] mb-6 max-w-md" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
@@ -649,6 +719,24 @@ export default function HomePage() {
             </div>
           </Reveal>
         </div>
+
+        <Reveal delay={140} className="w-11/12 max-w-6xl mx-auto">
+          <div className="flex items-center gap-2 mb-5">
+            <FaUsers size={14} style={{ color: "#8B2FC9" }} />
+            <p className="text-sm font-bold" style={{ color: "#1B1023" }}>One building, three disciplines</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {teamStrip.map((img, i) => (
+              <div
+                key={img.src}
+                className="group rounded-2xl overflow-hidden h-56 transition-transform duration-300 hover:-translate-y-1.5"
+                style={{ boxShadow: "0 16px 40px rgba(27,16,35,0.14)", transform: i === 1 ? "rotate(0deg)" : i === 0 ? "rotate(-1.5deg)" : "rotate(1.5deg)" }}
+              >
+                <img src={img.src} alt={img.alt} className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110" loading="lazy" />
+              </div>
+            ))}
+          </div>
+        </Reveal>
       </section>
 
       {/* INDUSTRIES MARQUEE */}
@@ -679,7 +767,7 @@ export default function HomePage() {
             <p className="text-sm font-bold mb-4" style={{ color: "#1B1023" }}>And whatever else your brand needs:</p>
             <div className="flex flex-wrap gap-3">
               {moreServices.map((s) => (
-                <Link key={s.title} href={s.href} className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full text-[13px] font-semibold transition-all duration-200" style={{ border: "1px solid rgba(139,47,201,0.18)", color: "#1B1023" }}>
+                <Link key={s.title} href={s.href} className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full text-[13px] font-semibold transition-all duration-200 hover:-translate-y-0.5" style={{ border: "1px solid rgba(139,47,201,0.18)", color: "#1B1023" }}>
                   <span style={{ color: "#8B2FC9" }}>{s.icon}</span>
                   {s.title}
                 </Link>
@@ -696,7 +784,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PROCESS — the one place numbered markers earn their keep: it's an actual sequence */}
+      {/* PROCESS */}
       <section className="py-24 md:py-28" style={{ background: "#ffffff" }}>
         <div className="w-11/12 max-w-6xl mx-auto">
           <Reveal className="mb-14 max-w-xl">
@@ -742,13 +830,16 @@ export default function HomePage() {
 
       {/* CONTACT STRIP */}
       <section className="py-16" style={{ background: "#FBF7FC", borderTop: "1px solid rgba(139,47,201,0.1)", borderBottom: "1px solid rgba(139,47,201,0.1)" }}>
-        <div className="w-11/12 max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-10">
+        <div className="w-11/12 max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8">
           {[
-            { label: "Office", lines: ["PAK Arab Society, Gulberg", "Lahore, Pakistan"] },
-            { label: "Call us", lines: ["Pakistan: +92 336 8007788", "UK: +44 7708 568160"] },
-            { label: "Email", lines: ["info@sktechs.com"] },
+            { label: "Office", lines: ["PAK Arab Society, Gulberg", "Lahore, Pakistan"], icon: <FaMapMarkerAlt size={16} /> },
+            { label: "Call us", lines: ["Pakistan: +92 336 8007788", "UK: +44 7708 568160"], icon: <FaPhoneAlt size={15} /> },
+            { label: "Email", lines: ["info@sktechs.com"], icon: <FaEnvelope size={16} /> },
           ].map((c) => (
-            <div key={c.label}>
+            <div key={c.label} className="p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: GRAD, color: "#fff" }}>
+                {c.icon}
+              </div>
               <p className="text-sm font-bold mb-2" style={{ color: "#8B2FC9", fontFamily: DISPLAY }}>{c.label}</p>
               {c.lines.map((l) => <p key={l} className="text-sm leading-relaxed" style={{ color: "#6b6560" }}>{l}</p>)}
             </div>
