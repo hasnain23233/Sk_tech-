@@ -129,6 +129,124 @@ function MagneticLink({ href, children, variant = "solid" }: { href: string; chi
 }
 
 /* ─────────────────────────────────────────
+   Tilt — reusable 3D hover tilt (mouse-driven). Same technique the
+   growth-estimator card already used; pulled out so other sections
+   can borrow the same "catching the light" feel as the hero silk.
+───────────────────────────────────────── */
+function useTilt(strength = 6) {
+  const ref = useRef<HTMLDivElement>(null)
+  const onMouseMove = (e: React.MouseEvent) => {
+    const el = ref.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const px = (e.clientX - r.left) / r.width - 0.5
+    const py = (e.clientY - r.top) / r.height - 0.5
+    el.style.transform = `perspective(900px) rotateY(${px * strength}deg) rotateX(${-py * strength}deg)`
+  }
+  const onMouseLeave = () => { if (ref.current) ref.current.style.transform = "perspective(900px) rotateY(0) rotateX(0)" }
+  return { ref, onMouseMove, onMouseLeave }
+}
+
+/* ─────────────────────────────────────────
+   Parallax — offsets an element based on its position relative to
+   viewport center as the page scrolls. Used for the About collage
+   so the three photos drift at slightly different depths.
+───────────────────────────────────────── */
+function useParallax(depth = 0.1) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [offset, setOffset] = useState(0)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let raf = 0
+    const onScroll = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const r = el.getBoundingClientRect()
+        const center = r.top + r.height / 2 - window.innerHeight / 2
+        setOffset(center * -depth)
+      })
+    }
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => { window.removeEventListener("scroll", onScroll); cancelAnimationFrame(raf) }
+  }, [depth])
+  return { ref, offset }
+}
+
+/* ─────────────────────────────────────────
+   Floating orbs — lightweight CSS-animated blurred gradient
+   circles that echo the hero's drifting silk without the cost of
+   another WebGL canvas. Drop behind any relative+overflow-hidden
+   section.
+───────────────────────────────────────── */
+function FloatingOrbs({ variant = "light" }: { variant?: "light" | "dark" }) {
+  const orbs = variant === "light"
+    ? [
+        { size: 340, top: "-10%", left: "62%", color: "rgba(139,47,201,0.14)", dur: "22s", delay: "0s" },
+        { size: 260, top: "55%", left: "-6%", color: "rgba(255,45,149,0.12)", dur: "26s", delay: "-6s" },
+        { size: 180, top: "6%", left: "10%", color: "rgba(255,182,72,0.14)", dur: "19s", delay: "-3s" },
+      ]
+    : [
+        { size: 420, top: "-12%", left: "68%", color: "rgba(139,47,201,0.35)", dur: "24s", delay: "0s" },
+        { size: 280, top: "60%", left: "-8%", color: "rgba(255,45,149,0.22)", dur: "28s", delay: "-8s" },
+        { size: 160, top: "10%", left: "4%", color: "rgba(255,182,72,0.18)", dur: "20s", delay: "-4s" },
+      ]
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {orbs.map((o, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: o.size, height: o.size, top: o.top, left: o.left,
+            background: `radial-gradient(circle,${o.color} 0%,transparent 70%)`,
+            filter: "blur(2px)",
+            animation: `orbDrift ${o.dur} ease-in-out infinite`,
+            animationDelay: o.delay,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────
+   Silk ribbon divider — a slim animated wave stitched between two
+   sections, a small 2D echo of the hero's silk fold used to carry
+   that motif down the page.
+───────────────────────────────────────── */
+function SilkRibbonDivider({ tone = "light" }: { tone?: "light" | "dark" }) {
+  const stroke = tone === "dark" ? "rgba(255,255,255,0.16)" : "rgba(139,47,201,0.18)"
+  return (
+    <div
+      className="relative w-full overflow-hidden"
+      style={{ height: 56, background: tone === "dark" ? "#1B1023" : "#FBF7FC" }}
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 1200 56" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+        <defs>
+          <linearGradient id="ribbonGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#8B2FC9" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#FF2D95" stopOpacity="0.55" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M0,28 C150,55 300,1 450,28 C600,55 750,1 900,28 C1050,55 1150,10 1200,28"
+          fill="none" stroke={stroke} strokeWidth="1.5"
+          style={{ animation: "ribbonDraw 8s ease-in-out infinite alternate" }}
+        />
+        <path
+          d="M0,30 C150,5 300,52 450,30 C600,5 750,52 900,30 C1050,5 1150,45 1200,30"
+          fill="none" stroke="url(#ribbonGrad)" strokeWidth="2"
+          style={{ animation: "ribbonDraw 11s ease-in-out infinite alternate-reverse" }}
+        />
+      </svg>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────
    Data
 ───────────────────────────────────────── */
 const stats = [
@@ -259,6 +377,9 @@ const wordFadeCSS = `
 @keyframes wordFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes floatSlow{0%,100%{transform:translateY(0) rotate(var(--rot,0deg))}50%{transform:translateY(-14px) rotate(var(--rot,0deg))}}
 @keyframes growBar{from{width:0}to{width:var(--w)}}
+@keyframes orbDrift{0%{transform:translate(0,0) scale(1)}33%{transform:translate(18px,-22px) scale(1.06)}66%{transform:translate(-14px,16px) scale(0.96)}100%{transform:translate(0,0) scale(1)}}
+@keyframes ribbonDraw{0%{transform:translateY(-3px)}100%{transform:translateY(3px)}}
+@keyframes bobFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
@@ -378,11 +499,15 @@ function Hero({ visible }: { visible: boolean }) {
 }
 
 /* ─────────────────────────────────────────
-   Service Explorer — large interactive cards with pill tabs
+   Service Explorer — large interactive cards with pill tabs.
+   The result card now tilts gently toward the cursor, the same
+   "catching the light" gesture as the hero silk.
 ───────────────────────────────────────── */
 function ServiceExplorer() {
   const [active, setActive] = useState(0)
   const s = coreServices[active]
+  const tilt = useTilt(3.5)
+
   return (
     <div>
       <div className="flex gap-2.5 overflow-x-auto pb-1 mb-6" style={{ scrollbarWidth: "none" }}>
@@ -403,7 +528,13 @@ function ServiceExplorer() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] rounded-[28px] overflow-hidden" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 24px 60px rgba(27,16,35,0.09)" }}>
+      <div
+        ref={tilt.ref}
+        onMouseMove={tilt.onMouseMove}
+        onMouseLeave={tilt.onMouseLeave}
+        className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] rounded-[28px] overflow-hidden"
+        style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 24px 60px rgba(27,16,35,0.09)", transition: "transform 0.2s ease-out", willChange: "transform" }}
+      >
         <div className="relative h-56 lg:h-auto overflow-hidden">
           <img key={s.id} src={s.image} alt={`${s.title} work sample`} className="w-full h-full object-cover" loading="lazy" style={{ animation: "wordFade 0.5s ease" }} />
           <div className="absolute inset-0" style={{ background: "linear-gradient(0deg,rgba(27,16,35,0.5) 0%,transparent 45%)" }} />
@@ -434,7 +565,9 @@ function ServiceExplorer() {
 }
 
 /* ─────────────────────────────────────────
-   Journey bubbles — first impression to conversion
+   Journey bubbles — first impression to conversion. Each bubble now
+   bobs gently on its own cycle, staggered, so the row feels adrift
+   rather than static — a small echo of the hero's floating fold.
 ───────────────────────────────────────── */
 function JourneyFlow() {
   return (
@@ -444,13 +577,15 @@ function JourneyFlow() {
         {journeyBubbles.map((b, i) => (
           <span
             key={b}
-            className="px-5 py-3 rounded-full text-sm font-bold"
+            className="px-5 py-3 rounded-full text-sm font-bold transition-transform duration-200 hover:-translate-y-1"
             style={{
               background: "#ffffff",
               color: "#1B1023",
               border: `1px solid ${i % 2 === 0 ? "rgba(139,47,201,0.3)" : "rgba(255,45,149,0.3)"}`,
               boxShadow: "0 8px 20px rgba(27,16,35,0.06)",
               fontFamily: DISPLAY,
+              animation: `bobFloat ${3.4 + (i % 3) * 0.6}s ease-in-out infinite`,
+              animationDelay: `${i * 0.18}s`,
             }}
           >
             {b}
@@ -486,8 +621,8 @@ function GrowthEstimator() {
 
   return (
     <div className="rounded-3xl p-8 md:p-12 relative overflow-hidden" style={{ background: "#1B1023" }}>
-      <div className="absolute top-0 right-0 w-[420px] h-[420px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.35) 0%,transparent 65%)", transform: "translate(30%,-35%)" }} />
-      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(255,45,149,0.18) 0%,transparent 65%)", transform: "translate(-25%,35%)" }} />
+      <div className="absolute top-0 right-0 w-[420px] h-[420px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.35) 0%,transparent 65%)", transform: "translate(30%,-35%)", animation: "orbDrift 20s ease-in-out infinite" }} />
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(255,45,149,0.18) 0%,transparent 65%)", transform: "translate(-25%,35%)", animation: "orbDrift 26s ease-in-out infinite reverse" }} />
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
           <p className="text-sm font-semibold mb-4" style={{ color: "#FF2D95", fontFamily: DISPLAY }}>Try it yourself</p>
@@ -570,11 +705,34 @@ function GrowthEstimator() {
 }
 
 /* ─────────────────────────────────────────
+   Process card — extracted so each card can carry its own tilt
+   hook (rules-of-hooks friendly: one instance per rendered card).
+───────────────────────────────────────── */
+function ProcessCard({ p }: { p: (typeof process)[number] }) {
+  const tilt = useTilt(5)
+  return (
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      className="relative flex flex-col gap-4 p-7 rounded-2xl h-full"
+      style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.12)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)", transition: "transform 0.2s ease-out", willChange: "transform" }}
+    >
+      <span className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: GRAD, color: "#fff", fontFamily: DISPLAY }}>{p.num}</span>
+      <h3 className="font-bold text-[17px]" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{p.title}</h3>
+      <p className="text-sm leading-relaxed" style={{ color: "#6b6560" }}>{p.desc}</p>
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────
    Case Study Switcher
 ───────────────────────────────────────── */
 function CaseStudySwitcher() {
   const [active, setActive] = useState(0)
   const c = caseStudies[active]
+  const tilt = useTilt(2.5)
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-8">
@@ -595,7 +753,13 @@ function CaseStudySwitcher() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-0 rounded-[28px] overflow-hidden" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 24px 60px rgba(27,16,35,0.08)" }}>
+      <div
+        ref={tilt.ref}
+        onMouseMove={tilt.onMouseMove}
+        onMouseLeave={tilt.onMouseLeave}
+        className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-0 rounded-[28px] overflow-hidden"
+        style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 24px 60px rgba(27,16,35,0.08)", transition: "transform 0.2s ease-out", willChange: "transform" }}
+      >
         <div className="relative h-64 lg:h-auto overflow-hidden">
           <img key={c.client} src={c.image} alt={`${c.client} project work`} className="w-full h-full object-cover" loading="lazy" style={{ animation: "wordFade 0.5s ease" }} />
           <div className="absolute inset-0" style={{ background: "linear-gradient(0deg,rgba(27,16,35,0.55) 0%,transparent 50%)" }} />
@@ -670,8 +834,8 @@ function TestimonialCarousel() {
 
   return (
     <div className="relative max-w-2xl mx-auto">
-      <div className="absolute -top-16 -left-10 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.14) 0%,transparent 70%)" }} />
-      <div className="absolute -bottom-16 -right-10 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(255,45,149,0.12) 0%,transparent 70%)" }} />
+      <div className="absolute -top-16 -left-10 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.14) 0%,transparent 70%)", animation: "orbDrift 24s ease-in-out infinite" }} />
+      <div className="absolute -bottom-16 -right-10 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(255,45,149,0.12) 0%,transparent 70%)", animation: "orbDrift 30s ease-in-out infinite reverse" }} />
 
       <div
         className="relative text-center outline-none rounded-[28px] px-8 py-12 md:px-14 md:py-14"
@@ -748,6 +912,14 @@ export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const statsReveal = useReveal(0.3)
   const resultsReveal = useReveal(0.3)
+  const processReveal = useReveal(0.3)
+
+  // Parallax depths for the three About-section collage photos —
+  // each drifts at a slightly different rate as the page scrolls,
+  // giving the stack real depth instead of moving as one flat unit.
+  const collageP1 = useParallax(0.045)
+  const collageP2 = useParallax(0.085)
+  const collageP3 = useParallax(0.12)
 
   useEffect(() => { const t = setTimeout(() => setHeroVisible(true), 80); return () => clearTimeout(t) }, [])
 
@@ -771,6 +943,10 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* SILK DIVIDER — dark marquee into the light stats section, a
+          small 2D echo of the hero's silk fold carried down the page */}
+      <SilkRibbonDivider tone="dark" />
 
       {/* STATS */}
       <section className="py-16" style={{ background: "#FBF7FC", borderBottom: "1px solid rgba(139,47,201,0.1)" }}>
@@ -819,18 +995,31 @@ export default function HomePage() {
           </Reveal>
         </div>
 
-        {/* overlapping collage */}
+        {/* overlapping collage — each photo drifts at its own parallax
+            depth on scroll, so the stack reads with real depth */}
         <Reveal delay={140} className="w-11/12 max-w-6xl mx-auto">
           <div className="relative h-[340px] md:h-[380px] max-w-4xl mx-auto">
-            <div className="absolute left-0 top-4 w-[46%] h-[78%] rounded-2xl overflow-hidden" style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.16)", zIndex: 1 }}>
+            <div
+              ref={collageP1.ref}
+              className="absolute left-0 top-4 w-[46%] h-[78%] rounded-2xl overflow-hidden"
+              style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.16)", zIndex: 1, transform: `translateY(${collageP1.offset}px)`, transition: "transform 0.1s linear" }}
+            >
               <img src={collage[0].src} alt={collage[0].alt} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
               <span className="absolute bottom-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "rgba(27,16,35,0.55)", backdropFilter: "blur(4px)" }}>{collage[0].label}</span>
             </div>
-            <div className="absolute right-0 top-0 w-[44%] h-[58%] rounded-2xl overflow-hidden" style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.16)", zIndex: 2 }}>
+            <div
+              ref={collageP2.ref}
+              className="absolute right-0 top-0 w-[44%] h-[58%] rounded-2xl overflow-hidden"
+              style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.16)", zIndex: 2, transform: `translateY(${collageP2.offset}px)`, transition: "transform 0.1s linear" }}
+            >
               <img src={collage[1].src} alt={collage[1].alt} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
               <span className="absolute bottom-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "rgba(27,16,35,0.55)", backdropFilter: "blur(4px)" }}>{collage[1].label}</span>
             </div>
-            <div className="absolute right-6 bottom-0 w-[40%] h-[46%] rounded-2xl overflow-hidden" style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.2)", zIndex: 3, border: "4px solid #fff" }}>
+            <div
+              ref={collageP3.ref}
+              className="absolute right-6 bottom-0 w-[40%] h-[46%] rounded-2xl overflow-hidden"
+              style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.2)", zIndex: 3, border: "4px solid #fff", transform: `translateY(${collageP3.offset}px)`, transition: "transform 0.1s linear" }}
+            >
               <img src={collage[2].src} alt={collage[2].alt} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
               <span className="absolute bottom-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "rgba(27,16,35,0.55)", backdropFilter: "blur(4px)" }}>{collage[2].label}</span>
             </div>
@@ -838,9 +1027,11 @@ export default function HomePage() {
         </Reveal>
       </section>
 
-      {/* SERVICES */}
-      <section className="py-24 md:py-28" style={{ background: "#FBF7FC", borderTop: "1px solid rgba(139,47,201,0.1)", borderBottom: "1px solid rgba(139,47,201,0.1)" }}>
-        <div className="w-11/12 max-w-6xl mx-auto">
+      {/* SERVICES — floating orbs drifting behind the panel, same
+          motion language as the hero's silk */}
+      <section className="relative overflow-hidden py-24 md:py-28" style={{ background: "#FBF7FC", borderTop: "1px solid rgba(139,47,201,0.1)", borderBottom: "1px solid rgba(139,47,201,0.1)" }}>
+        <FloatingOrbs variant="light" />
+        <div className="relative z-10 w-11/12 max-w-6xl mx-auto">
           <Reveal className="mb-12 max-w-xl">
             <SectionMark>What we lead with</SectionMark>
             <h2 className="text-3xl md:text-[42px] font-bold leading-[1.1] mb-4" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
@@ -884,9 +1075,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* PROCESS */}
-      <section className="py-24 md:py-28" style={{ background: "#ffffff" }}>
-        <div className="w-11/12 max-w-6xl mx-auto">
+      {/* PROCESS — connecting line now draws itself in once the row
+          scrolls into view, and each card tilts toward the cursor */}
+      <section className="relative overflow-hidden py-24 md:py-28" style={{ background: "#ffffff" }}>
+        <FloatingOrbs variant="light" />
+        <div className="relative z-10 w-11/12 max-w-6xl mx-auto">
           <Reveal className="mb-14 max-w-xl">
             <SectionMark>How we work</SectionMark>
             <h2 className="text-3xl md:text-[42px] font-bold leading-[1.1]" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
@@ -895,16 +1088,26 @@ export default function HomePage() {
           </Reveal>
 
           <Reveal delay={80}>
-            <div className="relative">
-              <div className="hidden lg:block absolute top-[26px] left-[12%] right-[12%] h-px" style={{ background: "linear-gradient(90deg,#8B2FC9,#FF2D95)" }} />
+            <div ref={processReveal.ref} className="relative">
+              <svg
+                className="hidden lg:block absolute top-[26px] left-[12%] w-[76%] h-[2px] overflow-visible"
+                viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient id="processGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#8B2FC9" />
+                    <stop offset="100%" stopColor="#FF2D95" />
+                  </linearGradient>
+                </defs>
+                <line
+                  x1="0" y1="1" x2="100" y2="1" stroke="url(#processGrad)" strokeWidth="2"
+                  strokeDasharray="100"
+                  strokeDashoffset={processReveal.visible ? 0 : 100}
+                  style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(0.22,1,0.36,1)" }}
+                />
+              </svg>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {process.map((p, i) => (
-                  <div key={p.num} className="relative flex flex-col gap-4 p-7 rounded-2xl h-full transition-all duration-300 hover:-translate-y-2" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.12)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)" }}>
-                    <span className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: GRAD, color: "#fff", fontFamily: DISPLAY }}>{p.num}</span>
-                    <h3 className="font-bold text-[17px]" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{p.title}</h3>
-                    <p className="text-sm leading-relaxed" style={{ color: "#6b6560" }}>{p.desc}</p>
-                  </div>
-                ))}
+                {process.map((p) => <ProcessCard key={p.num} p={p} />)}
               </div>
             </div>
           </Reveal>
@@ -982,8 +1185,8 @@ export default function HomePage() {
 
       {/* CTA BAND */}
       <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#1B1023 0%,#8B2FC9 60%,#FF2D95 100%)" }}>
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 65%)", transform: "translate(30%,-30%)" }} />
-        <div className="absolute bottom-10 left-10 w-40 h-40 rounded-full pointer-events-none hidden md:block" style={{ background: "radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%)" }} />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 65%)", transform: "translate(30%,-30%)", animation: "orbDrift 26s ease-in-out infinite" }} />
+        <div className="absolute bottom-10 left-10 w-40 h-40 rounded-full pointer-events-none hidden md:block" style={{ background: "radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%)", animation: "orbDrift 20s ease-in-out infinite reverse" }} />
         <div
           className="absolute bottom-16 right-[14%] rounded-2xl px-5 py-4 items-center gap-3 hidden md:flex"
           style={{ ["--rot" as string]: "-2deg", animation: "floatSlow 6s ease-in-out infinite", background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.25)" }}
