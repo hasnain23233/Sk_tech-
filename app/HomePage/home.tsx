@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, ReactNode } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { Bricolage_Grotesque, Manrope } from "next/font/google"
 import {
   FaCode, FaSearch, FaHashtag, FaChartLine, FaPaintBrush,
@@ -9,6 +10,10 @@ import {
   FaQuoteLeft, FaChevronDown, FaStar, FaPhoneAlt, FaEnvelope,
   FaMapMarkerAlt, FaUsers, FaAngleDown, FaArrowUp, FaBullhorn,
 } from "react-icons/fa"
+
+// 3D fabric/silk hero background — client-only, code-split away from
+// the main bundle since it pulls in three.js + @react-three/fiber.
+const HeroScene = dynamic(() => import("../components/Heroscene"), { ssr: false })
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", weight: ["500", "600", "700", "800"] })
 const body = Manrope({ subsets: ["latin"], variable: "--font-body", weight: ["400", "500", "600", "700", "800"] })
@@ -267,142 +272,106 @@ function GradWord({ children }: { children: ReactNode }) {
 }
 
 /* ─────────────────────────────────────────
-   Hero — layered composition: mockup + floating marketing cards
+   Hero — cinematic centered composition with an animated 3D
+   fabric/silk form behind the copy. Same content as before,
+   rearranged into the reference's layout: eyebrow → dominant
+   headline → accent line → supporting copy → CTAs → category tags.
 ───────────────────────────────────────── */
 function Hero({ visible }: { visible: boolean }) {
-  const sectionRef = useRef<HTMLDivElement>(null)
-  const onMove = (e: React.MouseEvent) => {
-    const el = sectionRef.current
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    el.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`)
-    el.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`)
-  }
+  const [reducedMotion, setReducedMotion] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    setReducedMotion(mq.matches)
+    const onChange = () => setReducedMotion(mq.matches)
+    mq.addEventListener("change", onChange)
+    return () => mq.removeEventListener("change", onChange)
+  }, [])
 
   return (
     <section
-      ref={sectionRef}
-      onMouseMove={onMove}
-      className="relative pt-28 md:pt-36 pb-20 overflow-hidden"
-      style={{ ["--mx" as string]: "15%", ["--my" as string]: "10%" }}
+      className="relative min-h-screen md:min-h-[100svh] flex items-center overflow-hidden"
+      style={{ background: "#1B1023" }}
     >
+      {/* Layer 1 — animated 3D fabric/silk background */}
+      <div className="absolute inset-0">
+        <HeroScene />
+      </div>
+
+      {/* Layer 2 — readability overlay, heavier toward the bottom where the scroll cue sits */}
       <div
-        className="absolute inset-0 pointer-events-none transition-[background] duration-300"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          backgroundImage:
-            "radial-gradient(650px circle at var(--mx) var(--my),rgba(139,47,201,0.13) 0%,transparent 60%),radial-gradient(ellipse 55% 45% at 88% 15%,rgba(255,45,149,0.08) 0%,transparent 55%)",
+          background:
+            "linear-gradient(180deg, rgba(27,16,35,0.25) 0%, rgba(27,16,35,0.15) 30%, rgba(27,16,35,0.5) 78%, rgba(27,16,35,0.92) 100%)",
         }}
       />
 
-      <div className="relative z-10 w-11/12 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center">
-        <div>
-          <div
-            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.6s ease, transform 0.6s ease" }}
-            className="inline-flex items-center gap-2 mb-7"
-          >
-            <span className="inline-flex items-center gap-2" style={{ color: "#8B2FC9", background: "rgba(139,47,201,0.08)", border: "1px solid rgba(139,47,201,0.25)", borderRadius: 999, padding: "8px 16px", fontFamily: DISPLAY, fontWeight: 600, fontSize: 13 }}>
-              <FaStar size={9} /> Digital growth partner for Pakistan &amp; UK
-            </span>
-          </div>
-
-          <h1
-            style={{
-              opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(24px)",
-              transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", color: "#1B1023", fontFamily: DISPLAY,
-            }}
-            className="text-4xl sm:text-5xl md:text-[60px] font-bold leading-[1.04] tracking-tight mb-7"
-          >
-            Your brand deserves more than <GradWord>just a website.</GradWord>
-          </h1>
-
-          <p
-            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s", color: "#6b6560" }}
-            className="text-base md:text-lg leading-relaxed mb-10 max-w-xl"
-          >
-            We build brands, websites and marketing systems that turn attention into measurable growth — design, development and marketing, run by one accountable team since 2011.
-          </p>
-
-          <div
-            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.7s ease 0.3s, transform 0.7s ease 0.3s" }}
-            className="flex flex-wrap gap-4"
-          >
-            <MagneticLink href="/contact" variant="solid">Start your project <FaArrowRight size={12} /></MagneticLink>
-            <MagneticLink href="/portfolio" variant="outline">Explore our work</MagneticLink>
-          </div>
-        </div>
-
-        {/* Layered marketing composition */}
+      {/* Layer 3 — hero content */}
+      <div className="relative z-10 w-11/12 max-w-4xl mx-auto text-center pt-28 pb-24">
         <div
-          className="relative hidden lg:block h-[480px]"
-          style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.97)", transition: "opacity 0.8s ease 0.15s, transform 0.8s ease 0.15s" }}
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0)" : "translateY(16px)",
+            transition: "opacity 0.6s ease, transform 0.6s ease",
+          }}
+          className="inline-flex items-center gap-2 mb-8"
         >
-          {/* main device mockup */}
-          <div className="absolute top-2 left-6 right-16 rounded-[22px] overflow-hidden" style={{ boxShadow: "0 30px 70px rgba(27,16,35,0.22)", border: "1px solid rgba(139,47,201,0.15)" }}>
-            <div className="flex items-center gap-1.5 px-4 py-3" style={{ background: "#1B1023" }}>
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#FF2D95" }} />
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#FFB648" }} />
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#8B2FC9" }} />
-              <span className="ml-3 text-[11px] font-semibold" style={{ color: "rgba(255,255,255,0.5)", fontFamily: DISPLAY }}>sktechs.com</span>
-            </div>
-            <img
-              src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80"
-              alt="SK Techs client website homepage mockup"
-              className="w-full h-[300px] object-cover"
-              loading="lazy"
-            />
-          </div>
-
-          {/* floating growth card */}
-          <div
-            className="absolute left-0 bottom-24 rounded-2xl px-5 py-4 flex items-center gap-3"
-            style={{ ["--rot" as string]: "-2deg", animation: "floatSlow 6s ease-in-out infinite", background: "rgba(255,255,255,0.92)", backdropFilter: "blur(10px)", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 18px 40px rgba(27,16,35,0.16)" }}
+          <span
+            className="inline-flex items-center gap-2"
+            style={{ color: "#fff", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 999, padding: "8px 16px", fontFamily: DISPLAY, fontWeight: 600, fontSize: 13 }}
           >
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: GRAD, color: "#fff" }}>
-              <FaArrowUp size={13} />
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-none" style={{ color: "#1B1023", fontFamily: DISPLAY }}>+42% growth</p>
-              <p className="text-[11px] font-medium" style={{ color: "#6b6560" }}>90-day campaign</p>
-            </div>
-          </div>
+            <FaStar size={9} style={{ color: "#FFB648" }} /> Digital growth partner for Pakistan &amp; UK
+          </span>
+        </div>
 
-          {/* floating social card */}
-          <div
-            className="absolute right-0 bottom-4 rounded-2xl overflow-hidden w-40"
-            style={{ ["--rot" as string]: "3deg", animation: "floatSlow 7s ease-in-out infinite 0.6s", background: "#fff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 18px 40px rgba(27,16,35,0.16)" }}
-          >
-            <img src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=300&q=80" alt="Social campaign creative preview" className="w-full h-16 object-cover" loading="lazy" />
-            <div className="px-3 py-2.5">
-              <p className="text-[11px] font-bold" style={{ color: "#1B1023" }}>Campaign live</p>
-              <p className="text-[10px]" style={{ color: "#6b6560" }}>Reach 48.2K</p>
-            </div>
-          </div>
+        <h1
+          style={{
+            opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(24px)",
+            transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", color: "#fff", fontFamily: DISPLAY,
+          }}
+          className="text-[42px] sm:text-6xl md:text-[74px] font-bold leading-[1.03] tracking-tight mb-7"
+        >
+          Your brand deserves more than<br className="hidden sm:block" /> just a <GradWord>website.</GradWord>
+        </h1>
 
-          {/* floating ROI pill */}
-          <div
-            className="absolute right-8 top-8 rounded-full px-5 py-3 flex items-center gap-2"
-            style={{ ["--rot" as string]: "-1deg", animation: "floatSlow 5.5s ease-in-out infinite 0.3s", background: "#1B1023", boxShadow: "0 14px 34px rgba(27,16,35,0.28)" }}
-          >
-            <FaStar size={12} style={{ color: "#FFB648" }} />
-            <span className="text-sm font-bold" style={{ color: "#fff", fontFamily: DISPLAY }}>3.2x ROI</span>
-          </div>
+        <p
+          style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s", color: "rgba(255,255,255,0.68)" }}
+          className="text-base md:text-lg leading-relaxed mb-10 max-w-xl mx-auto"
+        >
+          We build brands, websites and marketing systems that turn attention into measurable growth — design, development and marketing, run by one accountable team since 2011.
+        </p>
 
-          {/* decorative gradient blob */}
-          <div className="absolute -z-10 -bottom-10 -right-10 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.16) 0%,transparent 70%)" }} />
+        <div
+          style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.7s ease 0.3s, transform 0.7s ease 0.3s" }}
+          className="flex flex-wrap gap-4 justify-center mb-14"
+        >
+          <MagneticLink href="/contact" variant="solid">Start your project <FaArrowRight size={12} /></MagneticLink>
+          <MagneticLink href="/portfolio" variant="onDark">Explore our work</MagneticLink>
+        </div>
+
+        <div
+          style={{ opacity: visible ? 1 : 0, transition: "opacity 0.8s ease 0.4s" }}
+          className="flex flex-wrap justify-center gap-2.5"
+        >
+          {["Web Development", "SEO", "Social Media", "PPC"].map((t) => (
+            <span
+              key={t}
+              className="px-4 py-2 rounded-full text-[12px] font-semibold"
+              style={{ color: "rgba(255,255,255,0.72)", border: "1px solid rgba(255,255,255,0.16)" }}
+            >
+              {t}
+            </span>
+          ))}
         </div>
       </div>
 
+      {/* scroll cue */}
       <div
-        className="relative z-10 flex justify-center mt-14"
-        style={{ opacity: visible ? 0.6 : 0, transition: "opacity 1s ease 0.6s", animation: visible ? "bounceDown 2.2s ease-in-out infinite" : "none" }}
+        className="absolute bottom-9 left-1/2 -translate-x-1/2 z-10"
+        style={{ opacity: visible ? 0.55 : 0, transition: "opacity 1s ease 0.6s", animation: visible && !reducedMotion ? "bounceDown 2.2s ease-in-out infinite" : "none" }}
       >
-        <FaAngleDown size={18} style={{ color: "#8B2FC9" }} />
-      </div>
-
-      <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] pointer-events-none">
-        <svg viewBox="0 0 1440 48" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" className="w-full h-10" style={{ fill: "#FBF7FC" }}>
-          <path d="M0,24 C360,48 1080,0 1440,24 L1440,48 L0,48 Z" />
-        </svg>
+        <FaAngleDown size={18} style={{ color: "rgba(255,255,255,0.6)" }} />
       </div>
     </section>
   )
