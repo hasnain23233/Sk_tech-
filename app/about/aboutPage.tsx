@@ -2,12 +2,18 @@
 
 import React, { useEffect, useRef, useState, ReactNode } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { Bricolage_Grotesque, Manrope } from "next/font/google"
 import {
   FaArrowRight, FaArrowUp, FaStar, FaChevronDown, FaUsers,
   FaCode, FaBullhorn, FaPenNib, FaMapMarkerAlt, FaAngleDown,
   FaClock, FaCheck,
 } from "react-icons/fa"
+import { Tilt3D, Magnetic } from "../components/Tilt3d"
+
+// The 3D scene uses WebGL / DOM APIs — load it client-only, same pattern as
+// the home page's HeroScene.
+const AboutScene = dynamic(() => import("../components/Aboutscene"), { ssr: false })
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", weight: ["500", "600", "700", "800"] })
 const body = Manrope({ subsets: ["latin"], variable: "--font-body", weight: ["400", "500", "600", "700", "800"] })
@@ -198,10 +204,10 @@ const offices = [
 const valuesStrip = ["SINCE 2011", "LAHORE", "LONDON HOURS", "300+ PROJECTS", "ONE TEAM", "NO HANDOFFS"]
 
 /* ─────────────────────────────────────────
-   Hero — layered photo composition + floating
-   stat cards, same interactive treatment as the
-   home page's hero (mouse-tracked glow, magnetic
-   CTAs, floating cards, wave divider)
+   Hero — layered photo composition sits in front of the
+   animated 3D twin-ribbon scene (client-only Canvas), with
+   the same mouse-tracked glow, magnetic CTAs and floating
+   cards as before, now given real 3D tilt.
 ───────────────────────────────────────── */
 function Hero({ visible }: { visible: boolean }) {
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -220,11 +226,18 @@ function Hero({ visible }: { visible: boolean }) {
       className="relative pt-28 md:pt-36 pb-20 overflow-hidden"
       style={{ ["--mx" as string]: "15%", ["--my" as string]: "10%" }}
     >
+      {/* Animated 3D backdrop — same shader language as the home page,
+          reworked as two woven ribbons. Sits behind everything, quiet
+          enough to read as texture rather than compete with the copy. */}
+      <div className="absolute inset-0 pointer-events-none opacity-70 mix-blend-normal">
+        <AboutScene />
+      </div>
+
       <div
         className="absolute inset-0 pointer-events-none transition-[background] duration-300"
         style={{
           backgroundImage:
-            "radial-gradient(650px circle at var(--mx) var(--my),rgba(139,47,201,0.13) 0%,transparent 60%),radial-gradient(ellipse 55% 45% at 88% 15%,rgba(255,45,149,0.08) 0%,transparent 55%)",
+            "radial-gradient(650px circle at var(--mx) var(--my),rgba(139,47,201,0.13) 0%,transparent 60%),radial-gradient(ellipse 55% 45% at 88% 15%,rgba(255,45,149,0.08) 0%,transparent 55%), linear-gradient(180deg, rgba(251,247,252,0) 0%, rgba(251,247,252,0.55) 78%, #FBF7FC 100%)",
         }}
       />
 
@@ -265,33 +278,30 @@ function Hero({ visible }: { visible: boolean }) {
           </div>
         </div>
 
-        {/* Layered photo composition */}
+        {/* Layered photo composition, floating above the 3D backdrop */}
         <div
           className="relative hidden lg:block h-[480px]"
           style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.97)", transition: "opacity 0.8s ease 0.15s, transform 0.8s ease 0.15s" }}
         >
-          {/* main team photo */}
-          <div className="absolute top-2 left-6 right-16 rounded-[22px] overflow-hidden" style={{ boxShadow: "0 30px 70px rgba(27,16,35,0.22)", border: "1px solid rgba(139,47,201,0.15)" }}>
+          {/* main team photo — now with real 3D tilt on hover */}
+          <Tilt3D max={7} className="absolute top-2 left-6 right-16 rounded-[22px] overflow-hidden" style={{ boxShadow: "0 30px 70px rgba(27,16,35,0.22)", border: "1px solid rgba(139,47,201,0.15)" }}>
             <img
               src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80"
               alt="SK Techs team working together in the studio"
               className="w-full h-[300px] object-cover"
               loading="lazy"
             />
-          </div>
+          </Tilt3D>
 
           {/* secondary office photo, tucked behind top-right */}
-          <div
-            className="absolute right-0 top-10 w-32 h-32 rounded-2xl overflow-hidden"
-            style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.2)", border: "4px solid #fff" }}
-          >
+          <Tilt3D max={14} className="absolute right-0 top-10 w-32 h-32 rounded-2xl overflow-hidden" style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.2)", border: "4px solid #fff" }}>
             <img
               src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=300&q=80"
               alt="SK Techs desk setup"
               className="w-full h-full object-cover"
               loading="lazy"
             />
-          </div>
+          </Tilt3D>
 
           {/* floating years card */}
           <div
@@ -323,14 +333,11 @@ function Hero({ visible }: { visible: boolean }) {
             <p className="text-[11px] font-bold" style={{ color: "#1B1023" }}>One team, three desks</p>
           </div>
 
-          {/* floating location pill */}
-          <div
-            className="absolute right-24 top-4 rounded-full px-5 py-3 flex items-center gap-2"
-            style={{ ["--rot" as string]: "-1deg", animation: "floatSlow 5.5s ease-in-out infinite 0.3s", background: "#1B1023", boxShadow: "0 14px 34px rgba(27,16,35,0.28)" }}
-          >
+          {/* floating location pill — now magnetic */}
+          <Magnetic strength={0.3} className="absolute right-24 top-4 rounded-full px-5 py-3 flex items-center gap-2" style={{ ["--rot" as string]: "-1deg" as any, animation: "floatSlow 5.5s ease-in-out infinite 0.3s", background: "#1B1023", boxShadow: "0 14px 34px rgba(27,16,35,0.28)" }}>
             <FaMapMarkerAlt size={12} style={{ color: "#FFB648" }} />
             <span className="text-sm font-bold" style={{ color: "#fff", fontFamily: DISPLAY }}>Lahore + UK</span>
-          </div>
+          </Magnetic>
 
           {/* decorative gradient blob */}
           <div className="absolute -z-10 -bottom-10 -right-10 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.16) 0%,transparent 70%)" }} />
@@ -354,34 +361,56 @@ function Hero({ visible }: { visible: boolean }) {
 }
 
 /* ─────────────────────────────────────────
-   Story timeline — pill tabs + image/content split,
-   same pattern as the home page's Service Explorer
+   Story timeline — pill tabs + image/content split.
+   Image now has a subtle cursor-driven parallax zoom in
+   addition to the crossfade, so the timeline feels alive
+   under the pointer, not just on tab change.
 ───────────────────────────────────────── */
 function StoryExplorer() {
   const [active, setActive] = useState(milestones.length - 1)
+  const imgWrapRef = useRef<HTMLDivElement>(null)
+  const [imgTransform, setImgTransform] = useState("scale(1) translate(0,0)")
   const m = milestones[active]
+
+  const onImgMove = (e: React.MouseEvent) => {
+    const el = imgWrapRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const px = (e.clientX - r.left) / r.width - 0.5
+    const py = (e.clientY - r.top) / r.height - 0.5
+    setImgTransform(`scale(1.08) translate(${-px * 16}px, ${-py * 16}px)`)
+  }
+  const onImgLeave = () => setImgTransform("scale(1) translate(0,0)")
+
   return (
     <div>
       <div className="flex gap-2.5 overflow-x-auto pb-1 mb-6" style={{ scrollbarWidth: "none" }}>
         {milestones.map((item, i) => (
-          <button
-            key={item.year}
-            onClick={() => setActive(i)}
-            className="flex items-center gap-2.5 px-5 py-3 rounded-full flex-shrink-0 transition-all duration-300"
-            style={{
-              background: active === i ? GRAD : "#ffffff",
-              border: active === i ? "1px solid transparent" : "1px solid rgba(139,47,201,0.18)",
-              boxShadow: active === i ? "0 10px 26px rgba(139,47,201,0.3)" : "none",
-            }}
-          >
-            <span className="text-[14px] font-bold whitespace-nowrap" style={{ color: active === i ? "#fff" : "#1B1023", fontFamily: DISPLAY }}>{item.year}</span>
-          </button>
+          <Magnetic as="button" key={item.year} strength={0.18} onClick={() => setActive(i)}>
+            <div
+              className="flex items-center gap-2.5 px-5 py-3 rounded-full flex-shrink-0 transition-all duration-300"
+              style={{
+                background: active === i ? GRAD : "#ffffff",
+                border: active === i ? "1px solid transparent" : "1px solid rgba(139,47,201,0.18)",
+                boxShadow: active === i ? "0 10px 26px rgba(139,47,201,0.3)" : "none",
+              }}
+            >
+              <span className="text-[14px] font-bold whitespace-nowrap" style={{ color: active === i ? "#fff" : "#1B1023", fontFamily: DISPLAY }}>{item.year}</span>
+            </div>
+          </Magnetic>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] rounded-[28px] overflow-hidden" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 24px 60px rgba(27,16,35,0.09)" }}>
-        <div className="relative h-56 lg:h-auto overflow-hidden">
-          <img key={m.year} src={m.image} alt={`SK Techs, ${m.year}`} className="w-full h-full object-cover" loading="lazy" style={{ animation: "wordFade 0.5s ease" }} />
+      <Tilt3D max={3} glare={false} className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] rounded-[28px] overflow-hidden" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 24px 60px rgba(27,16,35,0.09)" }}>
+        <div ref={imgWrapRef} onMouseMove={onImgMove} onMouseLeave={onImgLeave} className="relative h-56 lg:h-auto overflow-hidden">
+          <img
+            key={m.year}
+            src={m.image}
+            alt={`SK Techs, ${m.year}`}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            style={{ animation: "wordFade 0.5s ease", transform: imgTransform, transition: "transform 0.35s cubic-bezier(0.22,1,0.36,1)" }}
+          />
           <div className="absolute inset-0" style={{ background: "linear-gradient(0deg,rgba(27,16,35,0.5) 0%,transparent 45%)" }} />
           <span className="absolute bottom-5 left-6 text-3xl font-bold text-white" style={{ fontFamily: DISPLAY }}>{m.year}</span>
         </div>
@@ -390,23 +419,24 @@ function StoryExplorer() {
           <h3 className="text-2xl md:text-[28px] font-bold mb-3" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{m.title}</h3>
           <p className="text-[15px] leading-relaxed" style={{ color: "#6b6560" }}>{m.body}</p>
         </div>
-      </div>
+      </Tilt3D>
     </div>
   )
 }
 
 /* ─────────────────────────────────────────
-   Teams — accordion rows, same visual language
-   as the home page's FAQ item
+   Teams — accordion rows, with a tilt-responsive icon chip
 ───────────────────────────────────────── */
 function TeamItem({ item, isOpen, onToggle }: { item: typeof teams[number]; isOpen: boolean; onToggle: () => void }) {
   return (
     <div style={{ borderBottom: "1px solid rgba(139,47,201,0.12)" }}>
       <button onClick={onToggle} className="flex w-full items-center justify-between gap-6 py-7 text-left" aria-expanded={isOpen}>
         <span className="flex items-center gap-4">
-          <span className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: isOpen ? GRAD : "rgba(139,47,201,0.08)", color: isOpen ? "#fff" : "#8B2FC9", transition: "background 0.3s ease, color 0.3s ease" }}>
-            {item.icon}
-          </span>
+          <Tilt3D max={20} glare={false} shadow={false}>
+            <span className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: isOpen ? GRAD : "rgba(139,47,201,0.08)", color: isOpen ? "#fff" : "#8B2FC9", transition: "background 0.3s ease, color 0.3s ease" }}>
+              {item.icon}
+            </span>
+          </Tilt3D>
           <span>
             <span className="block font-bold text-[17px]" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{item.label}</span>
             <span className="block text-sm" style={{ color: "#6b6560" }}>{item.role}</span>
@@ -429,8 +459,8 @@ function TeamItem({ item, isOpen, onToggle }: { item: typeof teams[number]; isOp
 }
 
 /* ─────────────────────────────────────────
-   Principles — dark panel with radial blobs,
-   same treatment as the home page's Growth Estimator
+   Principles — dark panel with radial blobs, cards now
+   tilt in 3D on hover in addition to expanding
 ───────────────────────────────────────── */
 function PrinciplesPanel() {
   const [open, setOpen] = useState<number | null>(0)
@@ -449,27 +479,28 @@ function PrinciplesPanel() {
           {principles.map((p, i) => {
             const isOpen = open === i
             return (
-              <button
-                key={p.title}
-                onClick={() => setOpen(isOpen ? null : i)}
-                className="rounded-2xl p-6 text-left transition-colors duration-200"
-                style={{ background: isOpen ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.03)", border: isOpen ? "1px solid rgba(255,45,149,0.4)" : "1px solid rgba(255,255,255,0.12)" }}
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <h4 className="font-bold text-[16px] leading-snug" style={{ color: "#fff", fontFamily: DISPLAY }}>{p.title}</h4>
-                  <span
-                    className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{ background: isOpen ? GRAD : "rgba(255,255,255,0.1)", color: "#fff", transform: isOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.3s ease, background 0.3s ease" }}
-                  >
-                    <FaChevronDown size={10} />
-                  </span>
-                </div>
-                <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: "grid-template-rows 0.3s cubic-bezier(0.22,1,0.36,1)" }}>
-                  <div className="overflow-hidden">
-                    <p className="pt-3 text-[14px] leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>{p.detail}</p>
+              <Tilt3D key={p.title} max={6} scale={1.01} shadow={false}>
+                <button
+                  onClick={() => setOpen(isOpen ? null : i)}
+                  className="rounded-2xl p-6 text-left transition-colors duration-200 w-full"
+                  style={{ background: isOpen ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.03)", border: isOpen ? "1px solid rgba(255,45,149,0.4)" : "1px solid rgba(255,255,255,0.12)" }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <h4 className="font-bold text-[16px] leading-snug" style={{ color: "#fff", fontFamily: DISPLAY }}>{p.title}</h4>
+                    <span
+                      className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ background: isOpen ? GRAD : "rgba(255,255,255,0.1)", color: "#fff", transform: isOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.3s ease, background 0.3s ease" }}
+                    >
+                      <FaChevronDown size={10} />
+                    </span>
                   </div>
-                </div>
-              </button>
+                  <div style={{ display: "grid", gridTemplateRows: isOpen ? "1fr" : "0fr", transition: "grid-template-rows 0.3s cubic-bezier(0.22,1,0.36,1)" }}>
+                    <div className="overflow-hidden">
+                      <p className="pt-3 text-[14px] leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>{p.detail}</p>
+                    </div>
+                  </div>
+                </button>
+              </Tilt3D>
             )
           })}
         </div>
@@ -479,8 +510,7 @@ function PrinciplesPanel() {
 }
 
 /* ─────────────────────────────────────────
-   Offices — tab switcher + card, same card
-   language as the home page's contact strip
+   Offices — tab switcher + card, card now tilts in 3D
 ───────────────────────────────────────── */
 function TimezoneClock({ timeZone }: { timeZone: string }) {
   const [now, setNow] = useState<Date | null>(null)
@@ -500,23 +530,23 @@ function OfficeSwitcher() {
     <div>
       <div className="flex gap-2.5 mb-6">
         {offices.map((item, i) => (
-          <button
-            key={item.city}
-            onClick={() => setActive(i)}
-            className="flex-1 flex items-center gap-2.5 px-5 py-3 rounded-full justify-center transition-all duration-300"
-            style={{
-              background: active === i ? GRAD : "#ffffff",
-              border: active === i ? "1px solid transparent" : "1px solid rgba(139,47,201,0.18)",
-              boxShadow: active === i ? "0 10px 26px rgba(139,47,201,0.3)" : "none",
-            }}
-          >
-            <FaMapMarkerAlt size={12} style={{ color: active === i ? "#fff" : "#8B2FC9" }} />
-            <span className="text-[14px] font-bold whitespace-nowrap" style={{ color: active === i ? "#fff" : "#1B1023", fontFamily: DISPLAY }}>{item.city}</span>
-          </button>
+          <Magnetic as="button" key={item.city} strength={0.15} onClick={() => setActive(i)} className="flex-1">
+            <div
+              className="flex items-center gap-2.5 px-5 py-3 rounded-full justify-center transition-all duration-300"
+              style={{
+                background: active === i ? GRAD : "#ffffff",
+                border: active === i ? "1px solid transparent" : "1px solid rgba(139,47,201,0.18)",
+                boxShadow: active === i ? "0 10px 26px rgba(139,47,201,0.3)" : "none",
+              }}
+            >
+              <FaMapMarkerAlt size={12} style={{ color: active === i ? "#fff" : "#8B2FC9" }} />
+              <span className="text-[14px] font-bold whitespace-nowrap" style={{ color: active === i ? "#fff" : "#1B1023", fontFamily: DISPLAY }}>{item.city}</span>
+            </div>
+          </Magnetic>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] rounded-[28px] overflow-hidden" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 24px 60px rgba(27,16,35,0.09)" }}>
+      <Tilt3D max={4} glare={false} className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] rounded-[28px] overflow-hidden" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 24px 60px rgba(27,16,35,0.09)" }}>
         <div className="relative h-52 lg:h-auto overflow-hidden">
           <img key={o.city} src={o.image} alt={`${o.city} office`} className="w-full h-full object-cover" loading="lazy" style={{ animation: "wordFade 0.5s ease" }} />
           <div className="absolute inset-0" style={{ background: "linear-gradient(0deg,rgba(27,16,35,0.5) 0%,transparent 45%)" }} />
@@ -536,7 +566,7 @@ function OfficeSwitcher() {
             </span>
           </div>
         </div>
-      </div>
+      </Tilt3D>
     </div>
   )
 }
@@ -572,21 +602,22 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* STATS */}
+      {/* STATS — now with real 3D tilt on hover, not just lift */}
       <section className="py-16" style={{ background: "#FBF7FC", borderBottom: "1px solid rgba(139,47,201,0.1)" }}>
         <div ref={statsReveal.ref} className="w-11/12 max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-5">
           {aboutStats.map((s) => (
-            <div
-              key={s.label}
-              className="group relative text-center p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5"
-              style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.12)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)" }}
-            >
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ background: GRAD_SOFT, color: "#8B2FC9" }}>{s.icon}</div>
-              <p className="text-4xl md:text-5xl font-bold tabular-nums mb-1" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
-                <CountUp value={`${s.value}${s.suffix}`} start={statsReveal.visible} />
-              </p>
-              <p className="text-sm font-medium" style={{ color: "#6b6560" }}>{s.label}</p>
-            </div>
+            <Tilt3D key={s.label} max={12}>
+              <div
+                className="group relative text-center p-6 rounded-2xl"
+                style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.12)" }}
+              >
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ background: GRAD_SOFT, color: "#8B2FC9" }}>{s.icon}</div>
+                <p className="text-4xl md:text-5xl font-bold tabular-nums mb-1" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
+                  <CountUp value={`${s.value}${s.suffix}`} start={statsReveal.visible} />
+                </p>
+                <p className="text-sm font-medium" style={{ color: "#6b6560" }}>{s.label}</p>
+              </div>
+            </Tilt3D>
           ))}
         </div>
       </section>
@@ -648,6 +679,9 @@ export default function AboutPage() {
 
       {/* CTA BAND */}
       <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#1B1023 0%,#8B2FC9 60%,#FF2D95 100%)" }}>
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          <AboutScene interactive={false} />
+        </div>
         <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 65%)", transform: "translate(30%,-30%)" }} />
         <div className="absolute bottom-10 left-10 w-40 h-40 rounded-full pointer-events-none hidden md:block" style={{ background: "radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%)" }} />
         <div
