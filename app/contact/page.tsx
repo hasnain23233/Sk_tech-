@@ -1,11 +1,17 @@
 "use client"
 
 import React, { useEffect, useRef, useState, ReactNode } from "react"
+import dynamic from "next/dynamic"
 import { Bricolage_Grotesque, Manrope } from "next/font/google"
 import {
   FaEnvelope, FaPhoneAlt, FaMapMarkerAlt, FaArrowRight, FaCheck,
   FaClock, FaGlobeAmericas,
 } from "react-icons/fa"
+
+// 3D fabric/silk hero background — same scene used on the home page,
+// client-only and code-split away from the main bundle since it pulls
+// in three.js + @react-three/fiber.
+const HeroScene = dynamic(() => import("../components/Heroscene"), { ssr: false })
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", weight: ["500", "600", "700", "800"] })
 const body = Manrope({ subsets: ["latin"], variable: "--font-body", weight: ["400", "500", "600", "700", "800"] })
@@ -65,6 +71,57 @@ function SectionMark({ children }: { children: ReactNode }) {
   )
 }
 
+/* Tilt — ported verbatim from the home page. Gives cards the same
+   "catching the light" cursor-driven 3D tilt used on the service
+   explorer, process cards, and case-study switcher. */
+function useTilt(strength = 6) {
+  const ref = useRef<HTMLDivElement>(null)
+  const onMouseMove = (e: React.MouseEvent) => {
+    const el = ref.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const px = (e.clientX - r.left) / r.width - 0.5
+    const py = (e.clientY - r.top) / r.height - 0.5
+    el.style.transform = `perspective(900px) rotateY(${px * strength}deg) rotateX(${-py * strength}deg)`
+  }
+  const onMouseLeave = () => { if (ref.current) ref.current.style.transform = "perspective(900px) rotateY(0) rotateX(0)" }
+  return { ref, onMouseMove, onMouseLeave }
+}
+
+/* Floating orbs — ported verbatim from the home page. Lightweight
+   CSS-animated blurred gradient circles that echo the hero's drifting
+   silk. Drop behind any relative+overflow-hidden section. */
+function FloatingOrbs({ variant = "light" }: { variant?: "light" | "dark" }) {
+  const orbs = variant === "light"
+    ? [
+        { size: 340, top: "-10%", left: "62%", color: "rgba(139,47,201,0.14)", dur: "22s", delay: "0s" },
+        { size: 260, top: "55%", left: "-6%", color: "rgba(255,45,149,0.12)", dur: "26s", delay: "-6s" },
+        { size: 180, top: "6%", left: "10%", color: "rgba(255,182,72,0.14)", dur: "19s", delay: "-3s" },
+      ]
+    : [
+        { size: 420, top: "-12%", left: "68%", color: "rgba(139,47,201,0.35)", dur: "24s", delay: "0s" },
+        { size: 280, top: "60%", left: "-8%", color: "rgba(255,45,149,0.22)", dur: "28s", delay: "-8s" },
+        { size: 160, top: "10%", left: "4%", color: "rgba(255,182,72,0.18)", dur: "20s", delay: "-4s" },
+      ]
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+      {orbs.map((o, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: o.size, height: o.size, top: o.top, left: o.left,
+            background: `radial-gradient(circle,${o.color} 0%,transparent 70%)`,
+            filter: "blur(2px)",
+            animation: `orbDrift ${o.dur} ease-in-out infinite`,
+            animationDelay: o.delay,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
 /* Magnetic wrapper that works for both <a> and <button> — used for every
    primary call-to-action so hover motion feels identical across pages. */
 function useMagneticEl<T extends HTMLElement>(strength = 0.25) {
@@ -104,10 +161,37 @@ function MagneticButton({
   )
 }
 
+/* Magnetic anchor — same mechanics as MagneticButton, for the hero's
+   two <a> CTAs, so their hover motion matches the rest of the site. */
+function MagneticAnchor({
+  href, children, className = "", style = {}, target, rel,
+}: {
+  href: string; children: ReactNode; className?: string; style?: React.CSSProperties
+  target?: string; rel?: string
+}) {
+  const { ref, onMove, onLeave } = useMagneticEl<HTMLAnchorElement>(0.22)
+  return (
+    <a
+      ref={ref}
+      href={href}
+      target={target}
+      rel={rel}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      style={{ transition: "transform 0.15s ease-out", fontFamily: DISPLAY, ...style }}
+      className={className}
+    >
+      {children}
+    </a>
+  )
+}
+
 const pageCSS = `
 @keyframes wordFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes floatSlow{0%,100%{transform:translateY(0) rotate(var(--rot,0deg))}50%{transform:translateY(-14px) rotate(var(--rot,0deg))}}
 @keyframes bounceDown{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes orbDrift{0%{transform:translate(0,0) scale(1)}33%{transform:translate(18px,-22px) scale(1.06)}66%{transform:translate(-14px,16px) scale(0.96)}100%{transform:translate(0,0) scale(1)}}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
@@ -143,6 +227,10 @@ const offices = [
   { country: "United Kingdom", address: "Remote team, London-based hours", phone: "+44 7708 568160", phoneHref: "tel:+447708568160" },
 ]
 
+// Reuses the home page's marquee strip, but pulled from the same
+// service list already used in the contact form's dropdown.
+const marqueeItems = services.filter((s) => s !== "Not sure yet")
+
 type FormState = { name: string; email: string; phone: string; service: string; budget: string; message: string }
 const initialForm: FormState = { name: "", email: "", phone: "", service: "", budget: "", message: "" }
 
@@ -155,8 +243,10 @@ function FieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor: strin
 const inputClass = "w-full rounded-xl px-4 py-3 text-[15px] outline-none transition-colors placeholder:text-neutral-400 focus:ring-2"
 
 /* ─────────────────────────────────────────
-   Hero — same layered composition language as home & portfolio,
-   built around a real photo of the team since this page is about talking to people
+   Hero — now built on the same animated 3D silk background as the
+   home page's hero (HeroScene, dark canvas + gradient overlay), with
+   the page's own copy, CTAs, and floating photo composition kept on
+   top so the section still reads as "contact", not a re-skinned home hero.
 ───────────────────────────────────────── */
 function Hero({ visible }: { visible: boolean }) {
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -172,14 +262,29 @@ function Hero({ visible }: { visible: boolean }) {
     <section
       ref={sectionRef}
       onMouseMove={onMove}
-      className="relative pt-28 md:pt-36 pb-16 overflow-hidden"
-      style={{ ["--mx" as string]: "15%", ["--my" as string]: "10%" }}
+      className="relative pt-28 md:pt-36 pb-20 overflow-hidden"
+      style={{ ["--mx" as string]: "15%", ["--my" as string]: "10%", background: "#1B1023" }}
     >
+      {/* Layer 1 — animated 3D fabric/silk background, same scene as the home hero */}
+      <div className="absolute inset-0">
+        <HeroScene />
+      </div>
+
+      {/* Layer 2 — readability overlay so the form/photo card and copy stay legible over the silk */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(27,16,35,0.35) 0%, rgba(27,16,35,0.55) 55%, rgba(27,16,35,0.88) 100%)",
+        }}
+      />
+
+      {/* Layer 3 — cursor-driven glow, same interaction the page already had */}
       <div
         className="absolute inset-0 pointer-events-none transition-[background] duration-300"
         style={{
           backgroundImage:
-            "radial-gradient(650px circle at var(--mx) var(--my),rgba(139,47,201,0.13) 0%,transparent 60%),radial-gradient(ellipse 55% 45% at 88% 15%,rgba(255,45,149,0.08) 0%,transparent 55%)",
+            "radial-gradient(650px circle at var(--mx) var(--my),rgba(255,45,149,0.18) 0%,transparent 60%)",
         }}
       />
 
@@ -189,15 +294,15 @@ function Hero({ visible }: { visible: boolean }) {
             style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.6s ease, transform 0.6s ease" }}
             className="inline-flex items-center gap-2 mb-7"
           >
-            <span className="inline-flex items-center gap-2" style={{ color: "#8B2FC9", background: "rgba(139,47,201,0.08)", border: "1px solid rgba(139,47,201,0.25)", borderRadius: 999, padding: "8px 16px", fontFamily: DISPLAY, fontWeight: 600, fontSize: 13 }}>
-              <FaEnvelope size={11} /> Replies within 2 business days
+            <span className="inline-flex items-center gap-2" style={{ color: "#fff", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 999, padding: "8px 16px", fontFamily: DISPLAY, fontWeight: 600, fontSize: 13 }}>
+              <FaEnvelope size={11} style={{ color: "#FFB648" }} /> Replies within 2 business days
             </span>
           </div>
 
           <h1
             style={{
               opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(24px)",
-              transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", color: "#1B1023", fontFamily: DISPLAY,
+              transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", color: "#fff", fontFamily: DISPLAY,
             }}
             className="text-4xl sm:text-5xl md:text-[58px] font-bold leading-[1.05] tracking-tight mb-7"
           >
@@ -205,7 +310,7 @@ function Hero({ visible }: { visible: boolean }) {
           </h1>
 
           <p
-            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s", color: "#6b6560" }}
+            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s", color: "rgba(255,255,255,0.7)" }}
             className="text-base md:text-lg leading-relaxed mb-10 max-w-xl"
           >
             Tell us what you&apos;re building. We reply within two business days with a real answer about scope, timeline, and cost — not a form-letter.
@@ -215,22 +320,24 @@ function Hero({ visible }: { visible: boolean }) {
             style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.7s ease 0.3s, transform 0.7s ease 0.3s" }}
             className="flex flex-wrap gap-4"
           >
-            <a href="#contact-form" className="inline-flex items-center justify-center gap-2 font-bold text-sm px-8 py-4 rounded-xl" style={{ background: GRAD, color: "#fff", boxShadow: "0 10px 30px rgba(139,47,201,0.35)", fontFamily: DISPLAY }}>
+            <MagneticAnchor href="#contact-form" className="inline-flex items-center justify-center gap-2 font-bold text-sm px-8 py-4 rounded-xl" style={{ background: GRAD, color: "#fff", boxShadow: "0 10px 30px rgba(139,47,201,0.45)" }}>
               Fill out the form <FaArrowRight size={12} />
-            </a>
-            <a href="mailto:info@sktechs.com" className="inline-flex items-center justify-center gap-2 font-bold text-sm px-8 py-4 rounded-xl" style={{ background: "rgba(139,47,201,0.05)", border: "1px solid rgba(139,47,201,0.25)", color: "#8B2FC9", fontFamily: DISPLAY }}>
+            </MagneticAnchor>
+            <MagneticAnchor href="mailto:info@sktechs.com" className="inline-flex items-center justify-center gap-2 font-bold text-sm px-8 py-4 rounded-xl" style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.22)", color: "#fff" }}>
               info@sktechs.com
-            </a>
+            </MagneticAnchor>
           </div>
         </div>
 
-        {/* Layered photo composition, mirroring the home/portfolio hero pattern */}
+        {/* Layered photo composition, mirroring the home/portfolio hero pattern,
+            restyled with a subtle white-hairline border so the cards separate
+            cleanly from the dark, animated silk behind them */}
         <div
           className="relative hidden lg:block h-[440px]"
           style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.97)", transition: "opacity 0.8s ease 0.15s, transform 0.8s ease 0.15s" }}
         >
           {/* main photo card */}
-          <div className="absolute top-2 left-6 right-16 rounded-[22px] overflow-hidden" style={{ boxShadow: "0 30px 70px rgba(27,16,35,0.22)", border: "1px solid rgba(139,47,201,0.15)" }}>
+          <div className="absolute top-2 left-6 right-16 rounded-[22px] overflow-hidden" style={{ boxShadow: "0 30px 70px rgba(0,0,0,0.45)", border: "1px solid rgba(255,255,255,0.14)" }}>
             <div className="flex items-center gap-1.5 px-4 py-3" style={{ background: "#1B1023" }}>
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#FF2D95" }} />
               <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#FFB648" }} />
@@ -248,7 +355,7 @@ function Hero({ visible }: { visible: boolean }) {
           {/* floating response-time card */}
           <div
             className="absolute left-0 bottom-16 rounded-2xl px-5 py-4 flex items-center gap-3"
-            style={{ ["--rot" as string]: "-2deg", animation: "floatSlow 6s ease-in-out infinite", background: "rgba(255,255,255,0.92)", backdropFilter: "blur(10px)", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 18px 40px rgba(27,16,35,0.16)" }}
+            style={{ ["--rot" as string]: "-2deg", animation: "floatSlow 6s ease-in-out infinite", background: "rgba(255,255,255,0.94)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 18px 40px rgba(0,0,0,0.35)" }}
           >
             <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: GRAD, color: "#fff" }}>
               <FaClock size={13} />
@@ -262,7 +369,7 @@ function Hero({ visible }: { visible: boolean }) {
           {/* floating email card */}
           <div
             className="absolute right-0 bottom-2 rounded-2xl px-4 py-3 flex items-center gap-2.5 w-44"
-            style={{ ["--rot" as string]: "3deg", animation: "floatSlow 7s ease-in-out infinite 0.6s", background: "#fff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 18px 40px rgba(27,16,35,0.16)" }}
+            style={{ ["--rot" as string]: "3deg", animation: "floatSlow 7s ease-in-out infinite 0.6s", background: "#fff", border: "1px solid rgba(255,255,255,0.5)", boxShadow: "0 18px 40px rgba(0,0,0,0.35)" }}
           >
             <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: GRAD_SOFT, color: "#8B2FC9" }}>
               <FaEnvelope size={12} />
@@ -276,16 +383,36 @@ function Hero({ visible }: { visible: boolean }) {
           {/* floating locations pill */}
           <div
             className="absolute right-8 top-6 rounded-full px-5 py-3 flex items-center gap-2"
-            style={{ ["--rot" as string]: "-1deg", animation: "floatSlow 5.5s ease-in-out infinite 0.3s", background: "#1B1023", boxShadow: "0 14px 34px rgba(27,16,35,0.28)" }}
+            style={{ ["--rot" as string]: "-1deg", animation: "floatSlow 5.5s ease-in-out infinite 0.3s", background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.3)", boxShadow: "0 14px 34px rgba(0,0,0,0.35)" }}
           >
             <FaGlobeAmericas size={12} style={{ color: "#FFB648" }} />
             <span className="text-sm font-bold" style={{ color: "#fff", fontFamily: DISPLAY }}>PK + UK</span>
           </div>
-
-          <div className="absolute -z-10 -bottom-10 -right-10 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.16) 0%,transparent 70%)" }} />
         </div>
       </div>
     </section>
+  )
+}
+
+/* ─────────────────────────────────────────
+   Step card — extracted so each card can carry its own tilt hook
+   (rules-of-hooks friendly: one instance per rendered card), the
+   same pattern as the home page's ProcessCard.
+───────────────────────────────────────── */
+function StepCard({ s }: { s: (typeof steps)[number] }) {
+  const tilt = useTilt(5)
+  return (
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      className="relative flex flex-col gap-4 p-7 rounded-2xl h-full"
+      style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.12)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)", transition: "transform 0.2s ease-out", willChange: "transform" }}
+    >
+      <span className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: GRAD, color: "#fff", fontFamily: DISPLAY }}>{s.num}</span>
+      <h3 className="font-bold text-[17px]" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{s.title}</h3>
+      <p className="text-sm leading-relaxed" style={{ color: "#6b6560" }}>{s.desc}</p>
+    </div>
   )
 }
 
@@ -298,6 +425,7 @@ export default function Contact() {
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const formTilt = useTilt(1.5)
 
   useEffect(() => { const t = setTimeout(() => setHeroVisible(true), 80); return () => clearTimeout(t) }, [])
 
@@ -363,14 +491,29 @@ export default function Contact() {
         <>
           <Hero visible={heroVisible} />
 
+          {/* MARQUEE STRIP — same infinite-scroll pattern as the home page's
+              industries strip, using the services this page's form offers */}
+          <div className="py-5 overflow-hidden" style={{ background: "#1B1023" }}>
+            <div className="flex items-center gap-10" style={{ animation: "marquee 26s linear infinite", width: "max-content" }}>
+              {[...marqueeItems, ...marqueeItems].map((t, i) => (
+                <span key={i} className="flex items-center gap-10 text-[13px] font-bold whitespace-nowrap tracking-wide uppercase" style={{ color: "rgba(255,255,255,0.85)", fontFamily: DISPLAY }}>
+                  {t}
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: i % 2 === 0 ? "#FF2D95" : "#8B2FC9" }} />
+                </span>
+              ))}
+            </div>
+          </div>
+
           {/* FORM + INFO */}
-          <section id="contact-form" className="w-11/12 max-w-6xl mx-auto py-8 md:py-14 grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-10">
+          <section id="contact-form" className="w-11/12 max-w-6xl mx-auto py-16 md:py-20 grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-10">
             <Reveal>
-              <form
+              <form 
+                onMouseMove={formTilt.onMouseMove}
+                onMouseLeave={formTilt.onMouseLeave}
                 onSubmit={handleSubmit}
                 noValidate
                 className="rounded-[28px] p-7 sm:p-9"
-                style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 24px 60px rgba(27,16,35,0.07)" }}
+                style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 24px 60px rgba(27,16,35,0.07)", transition: "transform 0.2s ease-out", willChange: "transform" }}
               >
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   <div>
@@ -513,9 +656,11 @@ export default function Contact() {
             </Reveal>
           </section>
 
-          {/* WHAT HAPPENS NEXT — same numbered-step pattern as the home page's process section */}
-          <section className="py-24 md:py-28" style={{ background: "#FBF7FC", borderTop: "1px solid rgba(139,47,201,0.1)" }}>
-            <div className="w-11/12 max-w-6xl mx-auto">
+          {/* WHAT HAPPENS NEXT — same numbered-step pattern as the home page's
+              process section, now with floating orbs and per-card tilt to match */}
+          <section className="relative overflow-hidden py-24 md:py-28" style={{ background: "#FBF7FC", borderTop: "1px solid rgba(139,47,201,0.1)" }}>
+            <FloatingOrbs variant="light" />
+            <div className="relative z-10 w-11/12 max-w-6xl mx-auto">
               <Reveal className="mb-14 max-w-xl">
                 <SectionMark>What happens next</SectionMark>
                 <h2 className="text-3xl md:text-[42px] font-bold leading-[1.1]" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
@@ -525,15 +670,20 @@ export default function Contact() {
 
               <Reveal delay={80}>
                 <div className="relative">
-                  <div className="hidden lg:block absolute top-[26px] left-[12%] right-[12%] h-px" style={{ background: "linear-gradient(90deg,#8B2FC9,#FF2D95)" }} />
+                  <svg
+                    className="hidden lg:block absolute top-[26px] left-[12%] w-[76%] h-[2px] overflow-visible"
+                    viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true"
+                  >
+                    <defs>
+                      <linearGradient id="stepsGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#8B2FC9" />
+                        <stop offset="100%" stopColor="#FF2D95" />
+                      </linearGradient>
+                    </defs>
+                    <line x1="0" y1="1" x2="100" y2="1" stroke="url(#stepsGrad)" strokeWidth="2" />
+                  </svg>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {steps.map((s) => (
-                      <div key={s.num} className="relative flex flex-col gap-4 p-7 rounded-2xl h-full transition-all duration-300 hover:-translate-y-2" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.12)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)" }}>
-                        <span className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: GRAD, color: "#fff", fontFamily: DISPLAY }}>{s.num}</span>
-                        <h3 className="font-bold text-[17px]" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{s.title}</h3>
-                        <p className="text-sm leading-relaxed" style={{ color: "#6b6560" }}>{s.desc}</p>
-                      </div>
-                    ))}
+                    {steps.map((s) => <StepCard key={s.num} s={s} />)}
                   </div>
                 </div>
               </Reveal>

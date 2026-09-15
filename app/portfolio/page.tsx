@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState, ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import dynamic from "next/dynamic"
 import { Bricolage_Grotesque, Manrope } from "next/font/google"
 import {
   FaCode, FaSearch, FaHashtag, FaChartLine, FaPaintBrush,
@@ -12,6 +13,11 @@ import {
 
 const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", weight: ["500", "600", "700", "800"] })
 const body = Manrope({ subsets: ["latin"], variable: "--font-body", weight: ["400", "500", "600", "700", "800"] })
+
+/* Real 3D fabric mesh (react-three-fiber). Loaded client-only — R3F/Canvas
+   can't run during SSR. Adjust the import path to wherever HeroScene.tsx
+   ends up living in your project (e.g. "@/components/HeroScene"). */
+const HeroScene = dynamic(() => import("../components/Aboutscene"), { ssr: false })
 
 /* ─────────────────────────────────────────
    Brand tokens — same system as the home page
@@ -127,6 +133,59 @@ function SectionMark({ children }: { children: ReactNode }) {
       <span className="text-[14px] font-semibold" style={{ color: "#8B2FC9", fontFamily: DISPLAY }}>{children}</span>
     </div>
   )
+}
+
+/* ─────────────────────────────────────────
+   3D tilt primitive — pointer-tracked perspective rotation plus a
+   soft light-glare overlay, used on every clickable card so the
+   whole page reads as physical, glass-like surfaces rather than
+   flat rectangles.
+───────────────────────────────────────── */
+type GlareState = { x: number; y: number; active: boolean }
+
+function useTilt<T extends HTMLElement = HTMLDivElement>(maxTilt = 8, lift = 1.02) {
+  const ref = useRef<T>(null)
+  const [glarePos, setGlarePos] = useState<GlareState>({ x: 50, y: 50, active: false })
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    const el = ref.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const px = (e.clientX - r.left) / r.width
+    const py = (e.clientY - r.top) / r.height
+    const rx = (py - 0.5) * -maxTilt
+    const ry = (px - 0.5) * maxTilt
+    el.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) scale3d(${lift},${lift},${lift})`
+    setGlarePos({ x: px * 100, y: py * 100, active: true })
+  }
+
+  const onMouseLeave = () => {
+    const el = ref.current
+    if (el) el.style.transform = "perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1,1,1)"
+    setGlarePos((g) => ({ ...g, active: false }))
+  }
+
+  return { ref, onMouseMove, onMouseLeave, glarePos }
+}
+
+function Glare({ pos }: { pos: GlareState }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-0 rounded-[inherit] transition-opacity duration-300"
+      style={{
+        opacity: pos.active ? 1 : 0,
+        background: `radial-gradient(circle at ${pos.x}% ${pos.y}%, rgba(255,255,255,0.35), transparent 55%)`,
+        mixBlendMode: "overlay",
+      }}
+    />
+  )
+}
+
+const tiltSurface: React.CSSProperties = {
+  transition: "transform 0.4s cubic-bezier(0.22,1,0.36,1), box-shadow 0.4s ease",
+  transformStyle: "preserve-3d",
+  willChange: "transform",
 }
 
 const pageCSS = `
@@ -276,7 +335,7 @@ function ProjectThumb({
         alt=""
         fill
         sizes="(max-width: 768px) 100vw, 33vw"
-        className="object-cover transition-transform duration-500 group-hover:scale-[1.08]"
+        className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.12] group-hover:-rotate-1"
         unoptimized
       />
       <div
@@ -284,6 +343,33 @@ function ProjectThumb({
         style={{ background: flip ? "linear-gradient(135deg,#FF2D95,#8B2FC9)" : GRAD, mixBlendMode: "color", opacity: 0.75 }}
       />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(180deg,rgba(27,16,35,0) 40%,rgba(27,16,35,0.45) 100%)" }} />
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────
+   Scroll progress bar — thin gradient rail pinned to the top of the
+   viewport, filling as the visitor reads down the page. A small,
+   answers-the-person's-own-scrolling touch rather than decoration.
+───────────────────────────────────────── */
+function ScrollProgressBar() {
+  const [progress, setProgress] = useState(0)
+
+  useEffect(() => {
+    const onScroll = () => {
+      const h = document.documentElement
+      const scrolled = h.scrollTop
+      const max = h.scrollHeight - h.clientHeight
+      setProgress(max > 0 ? (scrolled / max) * 100 : 0)
+    }
+    onScroll()
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
+  return (
+    <div className="fixed top-0 left-0 w-full h-[3px] z-[60] pointer-events-none" style={{ background: "rgba(139,47,201,0.08)" }}>
+      <div style={{ width: `${progress}%`, height: "100%", background: GRAD, transition: "width 0.1s linear" }} />
     </div>
   )
 }
@@ -388,10 +474,14 @@ function CaseStudyModal({ project, onClose }: { project: ModalProject | null; on
 
 /* ─────────────────────────────────────────
    Hero — same layered composition language as the home page,
-   rebuilt around portfolio content instead of a site mockup
+   rebuilt around portfolio content instead of a site mockup, now
+   sitting on the real HeroScene 3D fabric mesh and with a
+   3D-tilted main card.
 ───────────────────────────────────────── */
 function Hero({ visible, onOpenProject }: { visible: boolean; onOpenProject: (p: ModalProject) => void }) {
   const sectionRef = useRef<HTMLDivElement>(null)
+  const cardTilt = useTilt<HTMLButtonElement>(7, 1.015)
+
   const onMove = (e: React.MouseEvent) => {
     const el = sectionRef.current
     if (!el) return
@@ -404,9 +494,11 @@ function Hero({ visible, onOpenProject }: { visible: boolean; onOpenProject: (p:
     <section
       ref={sectionRef}
       onMouseMove={onMove}
-      className="relative pt-28 md:pt-36 pb-20 overflow-hidden"
+      className="relative pt-28 md:pt-36 pb-20 overflow-hidden bg-black"
       style={{ ["--mx" as string]: "15%", ["--my" as string]: "10%" }}
     >
+      <HeroScene />
+
       <div
         className="absolute inset-0 pointer-events-none transition-[background] duration-300"
         style={{
@@ -421,7 +513,7 @@ function Hero({ visible, onOpenProject }: { visible: boolean; onOpenProject: (p:
             style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)", transition: "opacity 0.6s ease, transform 0.6s ease" }}
             className="inline-flex items-center gap-2 mb-7"
           >
-            <span className="inline-flex items-center gap-2" style={{ color: "#8B2FC9", background: "rgba(139,47,201,0.08)", border: "1px solid rgba(139,47,201,0.25)", borderRadius: 999, padding: "8px 16px", fontFamily: DISPLAY, fontWeight: 600, fontSize: 13 }}>
+            <span className="inline-flex items-center gap-2" style={{ color: "#fff", background: "rgba(139,47,201,0.08)", border: "1px solid rgba(139,47,201,0.25)", borderRadius: 999, padding: "8px 16px", fontFamily: DISPLAY, fontWeight: 600, fontSize: 13 }}>
               <FaLayerGroup size={11} /> Portfolio — 120+ projects across Pakistan &amp; UK
             </span>
           </div>
@@ -429,7 +521,7 @@ function Hero({ visible, onOpenProject }: { visible: boolean; onOpenProject: (p:
           <h1
             style={{
               opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(24px)",
-              transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", color: "#1B1023", fontFamily: DISPLAY,
+              transition: "opacity 0.7s ease 0.1s, transform 0.7s ease 0.1s", color: "#fff", fontFamily: DISPLAY,
             }}
             className="text-4xl sm:text-5xl md:text-[58px] font-bold leading-[1.05] tracking-tight mb-7"
           >
@@ -437,8 +529,8 @@ function Hero({ visible, onOpenProject }: { visible: boolean; onOpenProject: (p:
           </h1>
 
           <p
-            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s", color: "#6b6560" }}
-            className="text-base md:text-lg leading-relaxed mb-10 max-w-xl"
+            style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(20px)", transition: "opacity 0.7s ease 0.2s, transform 0.7s ease 0.2s", color: "#fff" }}
+            className="md:text-lg leading-relaxed text-white mb-10 max-w-xl"
           >
             Every project below started the same way — a business that needed a site, a campaign, or both, and a straight answer about what would actually move the number they cared about.
           </p>
@@ -448,72 +540,10 @@ function Hero({ visible, onOpenProject }: { visible: boolean; onOpenProject: (p:
             className="flex flex-wrap gap-4"
           >
             <MagneticLink href="/contact" variant="solid">Start your project <FaArrowRight size={12} /></MagneticLink>
-            <MagneticLink href="/services" variant="outline">See our services</MagneticLink>
+            <MagneticLink href="/services" variant="outline" > <span className="text-white">See our services</span> </MagneticLink>
           </div>
         </div>
 
-        {/* Layered project composition, mirroring the home hero's device + floating cards */}
-        <div
-          className="relative hidden lg:block h-[480px]"
-          style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0) scale(1)" : "translateY(20px) scale(0.97)", transition: "opacity 0.8s ease 0.15s, transform 0.8s ease 0.15s" }}
-        >
-          {/* main stacked case card — clickable */}
-          <button
-            onClick={() => onOpenProject({ title: "Boutique fashion retailer", client: "Boutique fashion retailer, UK", category: "Shopify Development", blurb: featured[0].detail, result: `+${featured[0].result}${featured[0].suffix}`, metric: featured[0].metric, seed: 0, quote: featured[0].quote, quoteAuthor: featured[0].quoteAuthor })}
-            className="absolute top-2 left-6 right-16 rounded-[22px] overflow-hidden text-left transition-transform duration-300 hover:-translate-y-1 group"
-            style={{ boxShadow: "0 30px 70px rgba(27,16,35,0.22)", border: "1px solid rgba(139,47,201,0.15)", background: "#fff" }}
-          >
-            <div className="flex items-center gap-1.5 px-4 py-3" style={{ background: "#1B1023" }}>
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#FF2D95" }} />
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#FFB648" }} />
-              <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#8B2FC9" }} />
-              <span className="ml-3 text-[11px] font-semibold" style={{ color: "rgba(255,255,255,0.5)", fontFamily: DISPLAY }}>Featured case study</span>
-            </div>
-            <div className="overflow-hidden"><ProjectThumb seed={0} category="Shopify Development" /></div>
-            <div className="px-5 py-4">
-              <p className="text-sm font-bold" style={{ color: "#1B1023" }}>Boutique fashion retailer, UK</p>
-              <p className="text-[12px] mt-0.5" style={{ color: "#6b6560" }}>Shopify Development · +3.2x organic traffic</p>
-            </div>
-          </button>
-
-          {/* floating projects-delivered card */}
-          <div
-            className="absolute left-0 bottom-16 rounded-2xl px-5 py-4 flex items-center gap-3"
-            style={{ ["--rot" as string]: "-2deg", animation: "floatSlow 6s ease-in-out infinite", background: "rgba(255,255,255,0.92)", backdropFilter: "blur(10px)", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 18px 40px rgba(27,16,35,0.16)" }}
-          >
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: GRAD, color: "#fff" }}>
-              <FaBriefcase size={13} />
-            </div>
-            <div>
-              <p className="text-lg font-bold leading-none" style={{ color: "#1B1023", fontFamily: DISPLAY }}>120+ projects</p>
-              <p className="text-[11px] font-medium" style={{ color: "#6b6560" }}>delivered since 2011</p>
-            </div>
-          </div>
-
-          {/* floating second thumbnail — clickable */}
-          <button
-            onClick={() => onOpenProject({ title: "Fielder Health", client: "Healthcare", category: "Application Development", blurb: portfolio[3].blurb, result: portfolio[3].result, metric: portfolio[3].metric, seed: 3 })}
-            className="absolute right-0 bottom-2 rounded-2xl overflow-hidden w-40 text-left transition-transform duration-300 hover:-translate-y-1"
-            style={{ ["--rot" as string]: "3deg", animation: "floatSlow 7s ease-in-out infinite 0.6s", background: "#fff", border: "1px solid rgba(139,47,201,0.16)", boxShadow: "0 18px 40px rgba(27,16,35,0.16)" }}
-          >
-            <div className="overflow-hidden"><ProjectThumb seed={3} category="Application Development" compact /></div>
-            <div className="px-3 py-2.5">
-              <p className="text-[11px] font-bold" style={{ color: "#1B1023" }}>Fielder Health</p>
-              <p className="text-[10px]" style={{ color: "#6b6560" }}>iOS + Android app</p>
-            </div>
-          </button>
-
-          {/* floating industries pill */}
-          <div
-            className="absolute right-6 top-6 rounded-full px-5 py-3 flex items-center gap-2"
-            style={{ ["--rot" as string]: "-1deg", animation: "floatSlow 5.5s ease-in-out infinite 0.3s", background: "#1B1023", boxShadow: "0 14px 34px rgba(27,16,35,0.28)" }}
-          >
-            <FaLayerGroup size={12} style={{ color: "#FFB648" }} />
-            <span className="text-sm font-bold" style={{ color: "#fff", fontFamily: DISPLAY }}>8 industries</span>
-          </div>
-
-          <div className="absolute -z-10 -bottom-10 -right-10 w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle,rgba(139,47,201,0.16) 0%,transparent 70%)" }} />
-        </div>
       </div>
 
       <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] pointer-events-none">
@@ -526,11 +556,14 @@ function Hero({ visible, onOpenProject }: { visible: boolean; onOpenProject: (p:
 }
 
 /* ─────────────────────────────────────────
-   Featured results — tabbed switcher, same pattern as the home page's case studies
+   Featured results — tabbed switcher, same pattern as the home page's
+   case studies, with the image pane now tilting toward the cursor.
 ───────────────────────────────────────── */
 function FeaturedSwitcher({ onOpenProject }: { onOpenProject: (p: ModalProject) => void }) {
   const [active, setActive] = useState(0)
   const c = featured[active]
+  const imgTilt = useTilt<HTMLButtonElement>(4, 1.01)
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-8">
@@ -553,9 +586,14 @@ function FeaturedSwitcher({ onOpenProject }: { onOpenProject: (p: ModalProject) 
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-0 rounded-[28px] overflow-hidden" style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 24px 60px rgba(27,16,35,0.08)" }}>
         <button
+          ref={imgTilt.ref}
+          onMouseMove={imgTilt.onMouseMove}
+          onMouseLeave={imgTilt.onMouseLeave}
           onClick={() => onOpenProject({ title: c.client, client: `${c.client} — ${c.region}`, category: c.category, blurb: c.detail, result: `+${c.result}${c.suffix}`, metric: c.metric, seed: active, quote: c.quote, quoteAuthor: c.quoteAuthor })}
           className="relative h-64 lg:h-auto overflow-hidden text-left group"
+          style={tiltSurface}
         >
+          <Glare pos={imgTilt.glarePos} />
           <div key={c.client} style={{ animation: "wordFade 0.5s ease", height: "100%" }}>
             <ProjectThumb seed={active} category={c.category} fill />
           </div>
@@ -585,12 +623,94 @@ function FeaturedSwitcher({ onOpenProject }: { onOpenProject: (p: ModalProject) 
 }
 
 /* ─────────────────────────────────────────
+   Stat card, portfolio grid card, and contact card — each gets its
+   own tilt instance so pointer tracking stays local to the card
+   under the cursor rather than one shared listener for the grid.
+───────────────────────────────────────── */
+function StatCard({ s, start }: { s: (typeof heroStats)[number]; start: boolean }) {
+  const tilt = useTilt<HTMLDivElement>(10, 1.03)
+  return (
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      className="relative text-center p-6 rounded-2xl overflow-hidden"
+      style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.12)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)", ...tiltSurface }}
+    >
+      <Glare pos={tilt.glarePos} />
+      <div className="w-9 h-9 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ background: GRAD_SOFT, color: "#8B2FC9" }}>{s.icon}</div>
+      <p className="text-4xl md:text-5xl font-bold tabular-nums mb-1" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
+        <CountUp value={`${s.value}${s.suffix}`} start={start} />
+      </p>
+      <p className="text-sm font-medium" style={{ color: "#6b6560" }}>{s.label}</p>
+    </div>
+  )
+}
+
+function PortfolioCard({ p, i, onOpen }: { p: (typeof portfolio)[number]; i: number; onOpen: () => void }) {
+  const tilt = useTilt<HTMLButtonElement>(7, 1.02)
+  return (
+    <button
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      onClick={onOpen}
+      className="card-in group relative text-left overflow-hidden rounded-2xl"
+      style={{ animationDelay: `${i * 0.05}s`, background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)", ...tiltSurface }}
+    >
+      <Glare pos={tilt.glarePos} />
+      <div className="overflow-hidden relative">
+        <ProjectThumb seed={i} category={p.category} />
+        <span className="absolute inset-x-0 bottom-0 top-0 flex items-end p-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "linear-gradient(180deg,rgba(27,16,35,0) 40%,rgba(27,16,35,0.55) 100%)" }}>
+          <span className="text-white text-sm font-bold">{p.result} · {p.metric}</span>
+        </span>
+      </div>
+      <div className="p-6">
+        <div className="flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: GRAD_SOFT, color: "#8B2FC9" }}>
+            {categoryIcon[p.category]} {p.category}
+          </span>
+          <span className="text-xs font-medium" style={{ color: "#c9a8dd" }}>{p.tag}</span>
+        </div>
+        <h3 className="mt-4 text-lg font-bold" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{p.title}</h3>
+        <p className="mt-1 text-sm font-medium" style={{ color: "#6b6560" }}>{p.client}</p>
+        <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "#6b6560" }}>{p.blurb}</p>
+        <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold transition-transform duration-200 group-hover:translate-x-1" style={{ color: "#8B2FC9" }}>
+          View case study <FaArrowRight size={11} />
+        </span>
+      </div>
+    </button>
+  )
+}
+
+function ContactCard({ c }: { c: { label: string; lines: string[]; icon: ReactNode } }) {
+  const tilt = useTilt<HTMLDivElement>(9, 1.025)
+  return (
+    <div
+      ref={tilt.ref}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      className="relative p-6 rounded-2xl overflow-hidden"
+      style={{ background: "#FBF7FC", border: "1px solid rgba(139,47,201,0.14)", ...tiltSurface }}
+    >
+      <Glare pos={tilt.glarePos} />
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: GRAD, color: "#fff" }}>
+        {c.icon}
+      </div>
+      <p className="text-sm font-bold mb-2" style={{ color: "#8B2FC9", fontFamily: DISPLAY }}>{c.label}</p>
+      {c.lines.map((l) => <p key={l} className="text-sm leading-relaxed" style={{ color: "#6b6560" }}>{l}</p>)}
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────
    Page
 ───────────────────────────────────────── */
 export default function Portfolio() {
   const [heroVisible, setHeroVisible] = useState(false)
   const [activeCategory, setActiveCategory] = useState("All")
   const [openProject, setOpenProject] = useState<ModalProject | null>(null)
+  const [marqueePaused, setMarqueePaused] = useState(false)
   const statsReveal = useReveal(0.3)
 
   useEffect(() => { const t = setTimeout(() => setHeroVisible(true), 80); return () => clearTimeout(t) }, [])
@@ -607,11 +727,22 @@ export default function Portfolio() {
     >
       <style dangerouslySetInnerHTML={{ __html: pageCSS }} />
 
+      <ScrollProgressBar />
+
       <Hero visible={heroVisible} onOpenProject={setOpenProject} />
 
-      {/* MARQUEE STRIP — categories instead of home's industries */}
-      <div className="py-5 overflow-hidden" style={{ background: "#1B1023" }}>
-        <div className="flex items-center gap-10" style={{ animation: "marquee 24s linear infinite", width: "max-content" }}>
+      {/* MARQUEE STRIP — categories instead of home's industries. Pauses
+          on hover so a visitor scanning the list can actually read it. */}
+      <div
+        className="py-5 overflow-hidden"
+        style={{ background: "#1B1023" }}
+        onMouseEnter={() => setMarqueePaused(true)}
+        onMouseLeave={() => setMarqueePaused(false)}
+      >
+        <div
+          className="flex items-center gap-10"
+          style={{ animation: "marquee 24s linear infinite", animationPlayState: marqueePaused ? "paused" : "running", width: "max-content" }}
+        >
           {[...categories.filter((c) => c !== "All"), ...categories.filter((c) => c !== "All")].map((t, i) => (
             <span key={i} className="flex items-center gap-10 text-[13px] font-bold whitespace-nowrap tracking-wide uppercase" style={{ color: "rgba(255,255,255,0.85)", fontFamily: DISPLAY }}>
               {t}
@@ -625,17 +756,7 @@ export default function Portfolio() {
       <section className="py-16" style={{ background: "#FBF7FC", borderBottom: "1px solid rgba(139,47,201,0.1)" }}>
         <div ref={statsReveal.ref} className="w-11/12 max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-5">
           {heroStats.map((s) => (
-            <div
-              key={s.label}
-              className="group relative text-center p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5"
-              style={{ background: "#ffffff", border: "1px solid rgba(139,47,201,0.12)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)" }}
-            >
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center mx-auto mb-3" style={{ background: GRAD_SOFT, color: "#8B2FC9" }}>{s.icon}</div>
-              <p className="text-4xl md:text-5xl font-bold tabular-nums mb-1" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
-                <CountUp value={`${s.value}${s.suffix}`} start={statsReveal.visible} />
-              </p>
-              <p className="text-sm font-medium" style={{ color: "#6b6560" }}>{s.label}</p>
-            </div>
+            <StatCard key={s.label} s={s} start={statsReveal.visible} />
           ))}
         </div>
       </section>
@@ -690,35 +811,14 @@ export default function Portfolio() {
             {filtered.length} {filtered.length === 1 ? "project" : "projects"}{activeCategory !== "All" ? ` in ${activeCategory}` : ""}
           </p>
 
-          <div key={activeCategory} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
+          <div key={activeCategory} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7" style={{ perspective: "1200px" }}>
             {filtered.map((p, i) => (
-              <button
+              <PortfolioCard
                 key={p.title}
-                onClick={() => setOpenProject({ title: p.title, client: p.client, category: p.category, blurb: p.blurb, result: p.result, metric: p.metric, seed: i })}
-                className="card-in group text-left overflow-hidden rounded-2xl transition-all duration-300 hover:-translate-y-1.5"
-                style={{ animationDelay: `${i * 0.05}s`, background: "#ffffff", border: "1px solid rgba(139,47,201,0.14)", boxShadow: "0 10px 26px rgba(27,16,35,0.05)" }}
-              >
-                <div className="overflow-hidden relative">
-                  <ProjectThumb seed={i} category={p.category} />
-                  <span className="absolute inset-x-0 bottom-0 top-0 flex items-end p-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: "linear-gradient(180deg,rgba(27,16,35,0) 40%,rgba(27,16,35,0.55) 100%)" }}>
-                    <span className="text-white text-sm font-bold">{p.result} · {p.metric}</span>
-                  </span>
-                </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: GRAD_SOFT, color: "#8B2FC9" }}>
-                      {categoryIcon[p.category]} {p.category}
-                    </span>
-                    <span className="text-xs font-medium" style={{ color: "#c9a8dd" }}>{p.tag}</span>
-                  </div>
-                  <h3 className="mt-4 text-lg font-bold" style={{ color: "#1B1023", fontFamily: DISPLAY }}>{p.title}</h3>
-                  <p className="mt-1 text-sm font-medium" style={{ color: "#6b6560" }}>{p.client}</p>
-                  <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "#6b6560" }}>{p.blurb}</p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold transition-transform duration-200 group-hover:translate-x-1" style={{ color: "#8B2FC9" }}>
-                    View case study <FaArrowRight size={11} />
-                  </span>
-                </div>
-              </button>
+                p={p}
+                i={i}
+                onOpen={() => setOpenProject({ title: p.title, client: p.client, category: p.category, blurb: p.blurb, result: p.result, metric: p.metric, seed: i })}
+              />
             ))}
           </div>
 
@@ -730,19 +830,13 @@ export default function Portfolio() {
 
       {/* CONTACT STRIP — mirrors the home page's contact strip */}
       <section className="py-16" style={{ background: "#ffffff" }}>
-        <div className="w-11/12 max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8">
+        <div className="w-11/12 max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-8" style={{ perspective: "1000px" }}>
           {[
             { label: "Office", lines: ["PAK Arab Society, Gulberg", "Lahore, Pakistan"], icon: <FaMapMarkerAlt size={16} /> },
             { label: "Industries", lines: ["Retail, healthcare, education,", "hospitality, SaaS & more"], icon: <FaLayerGroup size={15} /> },
             { label: "Delivered", lines: ["120+ projects since 2011"], icon: <FaBriefcase size={15} /> },
           ].map((c) => (
-            <div key={c.label} className="p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1" style={{ background: "#FBF7FC", border: "1px solid rgba(139,47,201,0.14)" }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: GRAD, color: "#fff" }}>
-                {c.icon}
-              </div>
-              <p className="text-sm font-bold mb-2" style={{ color: "#8B2FC9", fontFamily: DISPLAY }}>{c.label}</p>
-              {c.lines.map((l) => <p key={l} className="text-sm leading-relaxed" style={{ color: "#6b6560" }}>{l}</p>)}
-            </div>
+            <ContactCard key={c.label} c={c} />
           ))}
         </div>
       </section>
