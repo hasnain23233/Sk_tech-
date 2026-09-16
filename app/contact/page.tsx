@@ -447,16 +447,24 @@ export default function Contact() {
     return Object.keys(next).length === 0
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!validate()) return
-    setSubmitting(true)
-    // Simulated network delay — wire this up to your form endpoint / API route.
-    setTimeout(() => {
-      setSubmitting(false)
-      setSubmitted(true)
-    }, 900)
+  async function handleSubmit(e: React.FormEvent) {
+  e.preventDefault()
+  if (!validate()) return
+  setSubmitting(true)
+  try {
+    const res = await fetch("./api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    })
+    if (!res.ok) throw new Error("Request failed")
+    setSubmitted(true)
+  } catch {
+    setErrors((e) => ({ ...e, message: "Something went wrong sending your message. Please try again." }))
+  } finally {
+    setSubmitting(false)
   }
+}
 
   return (
     <main
