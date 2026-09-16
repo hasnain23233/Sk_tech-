@@ -971,7 +971,7 @@ export default function HomePage() {
       <section className="py-24 md:py-28" style={{ background: "#ffffff" }}>
         <div className="w-11/12 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 mb-20 items-center">
           <Reveal>
-            <h2 className="text-4xl md:text-[52px] font-bold leading-[1.05] mb-2" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
+            <h2 className="text-4xl md:text-[90px] font-bold leading-[1.05] mb-2" style={{ color: "#1B1023", fontFamily: DISPLAY }}>
               Strategy.<br />Creativity.<br /><GradWord>Technology.</GradWord><br />Growth.
             </h2>
           </Reveal>
@@ -998,7 +998,7 @@ export default function HomePage() {
         {/* overlapping collage — each photo drifts at its own parallax
             depth on scroll, so the stack reads with real depth */}
         <Reveal delay={140} className="w-11/12 max-w-6xl mx-auto">
-          <div className="relative h-[340px] md:h-[380px] max-w-4xl mx-auto">
+          <div className=" h-[340px] md:h-[380px] max-w-4xl mx-auto">
             <div
               ref={collageP1.ref}
               className="absolute left-0 top-4 w-[46%] h-[78%] rounded-2xl overflow-hidden"
@@ -1007,21 +1007,23 @@ export default function HomePage() {
               <img src={collage[0].src} alt={collage[0].alt} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
               <span className="absolute bottom-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "rgba(27,16,35,0.55)", backdropFilter: "blur(4px)" }}>{collage[0].label}</span>
             </div>
-            <div
-              ref={collageP2.ref}
-              className="absolute right-0 top-0 w-[44%] h-[58%] rounded-2xl overflow-hidden"
-              style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.16)", zIndex: 2, transform: `translateY(${collageP2.offset}px)`, transition: "transform 0.1s linear" }}
-            >
-              <img src={collage[1].src} alt={collage[1].alt} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
-              <span className="absolute bottom-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "rgba(27,16,35,0.55)", backdropFilter: "blur(4px)" }}>{collage[1].label}</span>
-            </div>
-            <div
-              ref={collageP3.ref}
-              className="absolute right-6 bottom-0 w-[40%] h-[46%] rounded-2xl overflow-hidden"
-              style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.2)", zIndex: 3, border: "4px solid #fff", transform: `translateY(${collageP3.offset}px)`, transition: "transform 0.1s linear" }}
-            >
-              <img src={collage[2].src} alt={collage[2].alt} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
-              <span className="absolute bottom-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "rgba(27,16,35,0.55)", backdropFilter: "blur(4px)" }}>{collage[2].label}</span>
+            <div>   
+                  <div
+                    ref={collageP2.ref}
+                    className="absolute right-0 top-0 w-[44%] h-[58%] rounded-2xl overflow-hidden"
+                    style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.16)", zIndex: 2, transform: `translateY(${collageP2.offset}px)`, transition: "transform 0.1s linear" }}
+                  >
+                    <img src={collage[1].src} alt={collage[1].alt} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
+                    <span className="absolute bottom-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "rgba(27,16,35,0.55)", backdropFilter: "blur(4px)" }}>{collage[1].label}</span>
+                  </div>
+                  <div
+                    ref={collageP3.ref}
+                    className="absolute right-6 bottom-0 w-[40%] h-[46%] rounded-2xl overflow-hidden"
+                    style={{ boxShadow: "0 20px 45px rgba(27,16,35,0.2)", zIndex: 3, border: "4px solid #fff", transform: `translateY(${collageP3.offset}px)`, transition: "transform 0.1s linear" }}
+                  >
+                    <img src={collage[2].src} alt={collage[2].alt} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
+                    <span className="absolute bottom-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: "rgba(27,16,35,0.55)", backdropFilter: "blur(4px)" }}>{collage[2].label}</span>
+                  </div>
             </div>
           </div>
         </Reveal>
