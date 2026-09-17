@@ -1,10 +1,11 @@
 "use client"
-
 import React, { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import Logo from "@/assets/logo.png"
+
+import ChatWidget from "@/app/components/Chatwidget"
 
 const GRAD = "linear-gradient(135deg,#8B2FC9,#FF2D95)"
 
@@ -42,6 +43,7 @@ const Navbar = () => {
   }, [pathname])
 
   return (
+    <>
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/90 backdrop-blur-sm">
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
         {/* Logo */}
@@ -213,7 +215,15 @@ const Navbar = () => {
           </div>
         </div>
       )}
+
+      {/* Floating chat widget — fixed position, so it persists across every page
+          that renders this Navbar, not just inside the mobile menu */}
+      
     </header>
+    <div>
+      <ChatWidget />
+    </div>
+    </>
   )
 }
 
