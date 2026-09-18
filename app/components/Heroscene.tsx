@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Canvas, useFrame } from "@react-three/fiber"
+import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import * as THREE from "three"
 
 /* ─────────────────────────────────────────
@@ -168,17 +168,97 @@ const fragmentShader = /* glsl */ `
 `
 
 /* ─────────────────────────────────────────
+   Responsive viewport tracking
+   Debounced via rAF so resize/orientation events don't spam layout
+   or geometry rebuilds every pixel.
+───────────────────────────────────────── */
+type Breakpoint = "mobile" | "tablet" | "desktop"
+
+function getBreakpoint(width: number): Breakpoint {
+  if (width < 640) return "mobile"
+  if (width < 1024) return "tablet"
+  return "desktop"
+}
+
+function useViewport() {
+  const [size, setSize] = useState(() => ({
+    width: typeof window !== "undefined" ? window.innerWidth : 1280,
+    height: typeof window !== "undefined" ? window.innerHeight : 800,
+  }))
+
+  useEffect(() => {
+    let frame = 0
+    const handleResize = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        setSize({ width: window.innerWidth, height: window.innerHeight })
+      })
+    }
+    window.addEventListener("resize", handleResize, { passive: true })
+    window.addEventListener("orientationchange", handleResize)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener("resize", handleResize)
+      window.removeEventListener("orientationchange", handleResize)
+    }
+  }, [])
+
+  const breakpoint = useMemo(() => getBreakpoint(size.width), [size.width])
+  const aspect = size.width / size.height
+
+  return { ...size, breakpoint, aspect }
+}
+
+/* Per-breakpoint mesh + camera presets. Keeping the fold's "look"
+   consistent while it shrinks/recenters for narrower viewports. */
+const MESH_PRESETS: Record<
+  Breakpoint,
+  { segments: [number, number]; position: [number, number, number]; scale: number; rotation: [number, number, number] }
+> = {
+  desktop: { segments: [180, 80], position: [2.2, -0.6, -2.5], scale: 1, rotation: [-0.32, 0.55, 0.4] },
+  tablet: { segments: [120, 56], position: [1.1, -0.4, -2.2], scale: 0.85, rotation: [-0.28, 0.5, 0.38] },
+  mobile: { segments: [70, 32], position: [0.3, -0.2, -1.8], scale: 0.62, rotation: [-0.22, 0.42, 0.34] },
+}
+
+const CAMERA_PRESETS: Record<Breakpoint, { fov: number; z: number }> = {
+  desktop: { fov: 40, z: 6 },
+  tablet: { fov: 46, z: 6.5 },
+  mobile: { fov: 52, z: 7 },
+}
+
+/* Keeps the camera's fov/position in sync with the current breakpoint.
+   R3F only applies the `camera` prop on mount, so anything that needs
+   to react to resizes has to update the camera object directly and
+   refresh its projection matrix. */
+function ResponsiveCamera({ breakpoint }: { breakpoint: Breakpoint }) {
+  const { camera } = useThree()
+
+  useEffect(() => {
+    const preset = CAMERA_PRESETS[breakpoint]
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = preset.fov
+      camera.updateProjectionMatrix()
+    }
+    camera.position.set(0, 0, preset.z)
+  }, [breakpoint, camera])
+
+  return null
+}
+
+/* ─────────────────────────────────────────
    Mesh
 ───────────────────────────────────────── */
-function FabricMesh({ reducedMotion, quality }: { reducedMotion: boolean; quality: "high" | "low" }) {
+function FabricMesh({ reducedMotion, breakpoint }: { reducedMotion: boolean; breakpoint: Breakpoint }) {
   const matRef = useRef<THREE.ShaderMaterial>(null)
   const mouse = useRef({ x: 0, y: 0 })
   const targetMouse = useRef({ x: 0, y: 0 })
+  const preset = MESH_PRESETS[breakpoint]
 
   const geometry = useMemo(() => {
-    const [segX, segY] = quality === "high" ? [180, 80] : [70, 32]
+    const [segX, segY] = preset.segments
     return new THREE.PlaneGeometry(17, 7.5, segX, segY)
-  }, [quality])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [breakpoint])
 
   useEffect(() => () => geometry.dispose(), [geometry])
 
@@ -219,7 +299,7 @@ function FabricMesh({ reducedMotion, quality }: { reducedMotion: boolean; qualit
   })
 
   return (
-    <mesh geometry={geometry} rotation={[-0.32, 0.55, 0.4]} position={[2.2, -0.6, -2.5]}>
+    <mesh geometry={geometry} rotation={preset.rotation} position={preset.position} scale={preset.scale}>
       <shaderMaterial
         ref={matRef}
         vertexShader={vertexShader}
@@ -252,15 +332,13 @@ function StaticFallback() {
 export default function HeroScene() {
   const [reducedMotion, setReducedMotion] = useState(false)
   const [webglSupported, setWebglSupported] = useState(true)
-  const [quality, setQuality] = useState<"high" | "low">("high")
+  const { breakpoint, aspect } = useViewport()
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
     setReducedMotion(mq.matches)
     const onChange = () => setReducedMotion(mq.matches)
     mq.addEventListener("change", onChange)
-
-    setQuality(window.innerWidth < 768 ? "low" : "high")
 
     try {
       const testCanvas = document.createElement("canvas")
@@ -279,11 +357,12 @@ export default function HeroScene() {
     <Canvas
       dpr={[1, 1.6]}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      camera={{ position: [0, 0, 6], fov: 40 }}
-      style={{ position: "absolute", inset: 0 }}
+      camera={{ position: [0, 0, CAMERA_PRESETS[breakpoint].z], fov: CAMERA_PRESETS[breakpoint].fov, aspect }}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
     >
+      <ResponsiveCamera breakpoint={breakpoint} />
       <ambientLight intensity={0.5} />
-      <FabricMesh reducedMotion={reducedMotion} quality={quality} />
+      <FabricMesh reducedMotion={reducedMotion} breakpoint={breakpoint} />
     </Canvas>
   )
-}
+} 
