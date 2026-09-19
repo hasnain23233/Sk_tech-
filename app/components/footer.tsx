@@ -181,7 +181,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          <div>
+          {/* <div className="hidden">
             <p className="font-display text-sm font-semibold text-neutral-900">Contact</p>
             <ul className="mt-4 space-y-3 text-[15px] text-neutral-600">
               <li>
@@ -200,7 +200,7 @@ const Footer = () => {
                 </a>
               </li>
             </ul>
-          </div>
+          </div> */}
 
           <div>
             <p className="font-display text-sm font-semibold text-neutral-900">Office</p>

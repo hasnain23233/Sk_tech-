@@ -115,12 +115,12 @@ const Navbar = () => {
         {/* CTA */}
         <div className="hidden items-center gap-5 lg:flex">
           {/* Real phone dialer link — stays a plain <a>, tel: isn't app routing */}
-          <a
+          {/* <a
             href="tel:+923368007788"
             className="text-sm font-medium text-neutral-600 transition-colors hover:text-[#8B2FC9]"
           >
             +92 336 8007788
-          </a>
+          </a> */}
           <Link
             href="/contact"
             className="rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:scale-[1.03]"
