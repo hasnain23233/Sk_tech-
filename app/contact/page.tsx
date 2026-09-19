@@ -633,12 +633,12 @@ export default function Contact() {
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: GRAD, color: "#fff" }}><FaEnvelope size={13} /></span>
                     info@sktechs.com
                   </a>
-                  {offices.map((o) => (
+                  {/* {offices.map((o) => (
                     <a key={o.country} href={o.phoneHref} className="flex items-center gap-3 text-[15px] font-semibold transition-colors" style={{ color: "#1B1023" }}>
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: GRAD, color: "#fff" }}><FaPhoneAlt size={12} /></span>
                       {o.country}: {o.phone}
                     </a>
-                  ))}
+                  ))} */}
                 </div>
               </div>
 
